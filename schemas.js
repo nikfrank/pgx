@@ -77,7 +77,7 @@ module.exports = {
     client:{
 	schemas:{
 	    word:{
-		word_id:'serial id'
+		word_id:'serial id',
 // think about an (internally defined type & pointer) type, instead of using a scattershot varchar balagan
 		lang:'lang (to be pointer once programmed)',
 		type:'grammatical type of the word',
