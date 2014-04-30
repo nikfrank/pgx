@@ -1,3 +1,6 @@
+// think about an (internally defined type & pointer) type, instead of using a scattershot varchar balagan
+
+// type is the schema name, followed by a delimiter followed by the hashpointer (sch|$|sha|$|timestamp)
 module.exports = {
     // write these up for use by pgboot and authM
     defaultFields:{
@@ -22,10 +25,6 @@ module.exports = {
 		    type:'serial primary key',
 		    permissions:''
 		},
-// think about an (internally defined type & pointer) type, instead of using a scattershot varchar balagan
-
-// type is the schema name, followed by a delimiter followed by the hashpointer (sch|$|sha|$|timestamp)
-
 		lang:{
 		    type:'varchar(63)',
 		    permissions:'',
