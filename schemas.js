@@ -16,7 +16,7 @@ module.exports = {
     },
     db:{
 	word:{
-	    tableName:'API_word',
+	    tableName:'api_word',
 	    permissions:{
 		// yet to define this field
 	    },
@@ -40,19 +40,19 @@ module.exports = {
 		    permissions:'',
 		    required:true
 		},
-		group:{
+		grp:{
 		    type:'varchar(63)',
 		    permissions:''
 		},
-		conjRule:{
+		conjrule:{
 		    type:'varchar(63)',
 		    permissions:''
 		},
-		conjExp:{
+		conjexp:{
 		    type:'json',
 		    permissions:''
 		},
-		transformExp:{
+		transform_exp:{
 		    type:'json[]',
 		    permissions:''
 		},
@@ -71,7 +71,126 @@ module.exports = {
 		    permissions:''
 		}
 	    }// </fields>
+	},
+
+	rule:{
+	    tableName:'api_rule',
+	    permissions:{
+		// yet to define this field
+	    },
+	    fields:{
+		rule_id:{
+		    type:'serial primary key',
+		    permissions:''
+		},
+		name:{
+		    type:'varchar(63)',
+		    permissions:'',
+		    defval:'',
+		    required:true
+		},
+		lang:{
+		    type:'varchar(63)',
+		    permissions:'',
+		    defval:'',
+		    required:true
+		},
+		type:{
+		    type:'varchar(63)',
+		    permissions:''
+		},
+		grp:{
+		    type:'varchar(63)',
+		    permissions:''
+		},
+		conj:{
+		    type:'json',
+		    permissions:''
+		},
+		hasconj:{
+		    type:'json',
+		    permissions:''
+		},
+		transform:{
+		    type:'json',
+		    permissions:''
+		},
+		exps:{// this to be an array of pointers to rules
+		    type:'json[]',
+		    permissions:''
+		},
+		created:{
+		    type:'timestamp',
+		    permissions:'',
+		    defval:'now()'
+		},
+		updated:{
+		    type:'timestamp',
+		    permissions:'',
+		    defval:'now()'
+		},
+		author:{
+		    type:'varchar(31)',
+		    permissions:''
+		}
+	    }// </fields>
+	},
+
+	lang:{
+	    tableName:'api_lang',
+	    permissions:{
+		// yet to define this field
+	    },
+	    fields:{
+		lang_id:{
+		    type:'serial primary key',
+		    permissions:''
+		},
+		name:{
+		    type:'varchar(63)',
+		    permissions:'',
+		    defval:'',
+		    required:true
+		},
+		tag:{
+		    type:'varchar(7)',
+		    permissions:'',
+		    defval:'',
+		    required:true
+		},
+		verbconj:{
+		    type:'json[]',
+		    permissions:'',
+		    defval:'',
+		    required:true
+		},
+		otherconj:{
+		    type:'json[]',
+		    permissions:'',
+		    defval:'',
+		    required:true
+		},
+		alphabet:{
+		    type:'json',
+		    permissions:'',
+		    defval:'',
+		    required:true
+		},
+		transliteration:{
+		    type:'json',
+		    permissions:'',
+		    defval:'',
+		    required:true
+		},
+		textdir:{
+		    type:'varchar(3)',
+		    permissions:'',
+		    defval:'',
+		    required:true
+		}
+	    }
 	}
+
     },// </db>
 
     client:{

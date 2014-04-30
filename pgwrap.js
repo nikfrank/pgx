@@ -4,6 +4,8 @@ var crypto = require('crypto');
 // read query into json
 //depth arrays?
 
+// schema cannot have anything called "group"
+
 
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
@@ -406,7 +408,9 @@ module.exports = function(pg, conop, schemas){
 		    var sc = schemas.db[sn];
 
 		    client.query('select * from '+sc.tableName, function(err, oldrowres) {
+			if(err) console.log(err);
 			client.query('drop table '+sc.tableName, function(err, result){
+			    if(err) console.log(err);
 			    
 			    var oldrows = (oldrowres||{rows:[]}).rows;
 			    
@@ -422,13 +426,26 @@ module.exports = function(pg, conop, schemas){
 			    // make the request
 			    (function(qu, oldrows){
 				client.query(qu, function(err, result) {
-				    if(err) errs.push({err:err, query:qu});
+				    if(err){
+					errs.push({err:err, query:qu});
+					console.log(err);
+				    }
 				    var rem = oldrows.length;
+
+				    if(!rem) if(!--rc){
+					done();
+		// think about returning successes and errors
+					if(errs.length) return res.json({errs:errs});
+					return res.json({db:schemas.db});
+				    }
 
 				    for(var i=oldrows.length; i-->0;){
 					(function(d){
 					    db.insert(sn, d, {}, function(err, ires){
-						if(err) errs.push({err:err});
+						if(err){
+						    errs.push({err:err});
+						    console.log(err);
+						}
 						//count?
 						if(!--rem) if(!--rc){
 						    done();
@@ -448,8 +465,6 @@ module.exports = function(pg, conop, schemas){
 	    }
 	});
     };
-
-
 
     return pg;
 }
