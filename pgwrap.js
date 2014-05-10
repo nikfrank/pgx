@@ -11,6 +11,14 @@ var crypto = require('crypto');
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 
+var dmfig = function(s){
+    // determine the first delimiter of style $N$ which isnt present
+    var n=0;
+    var S = JSON.stringify(s);
+    while( (new Regexp('$'+n+'$')).test(S) ) ++n;
+    return '$'+n+'$';
+};
+
 
 module.exports = function(pg, conop, schemas){
 
@@ -41,6 +49,8 @@ module.exports = function(pg, conop, schemas){
 	    if(ff in query){
 		qreq += ff + ',';
 		
+		var dm = dmfig(query[ff]);
+
 		if(schema.fields[ff].type.indexOf('varchar')>-1){
 		    //string
 		    //if empty string put null
@@ -55,8 +65,7 @@ module.exports = function(pg, conop, schemas){
 			valreq += 'null,';
 			continue;
 		    }
-//determine delimiter
-    var dm = '$nikisgreat$';
+
 		    if(schema.fields[ff].type.indexOf('[')===-1){
 			valreq += dm + query[ff] + dm + ',';
 		    }else{
@@ -80,8 +89,6 @@ module.exports = function(pg, conop, schemas){
 
 		}else if(schema.fields[ff].type.indexOf('json')>-1){
 		    //json
-//determine delimiter
-    var dm = '$nikisgreat$';
 		    if(schema.fields[ff].type.indexOf('[')===-1){
 			valreq += dm + JSON.stringify(query[ff]) + dm + '::json,';	
 		    }else{
@@ -140,8 +147,8 @@ module.exports = function(pg, conop, schemas){
 	}
 	if(isx){
 	    qreq += 'xattrs,';
-//determine delimiter
-    var dm = '$nikisgreat$';
+
+	    var dm = dmfig(xat);
 	    valreq += dm + JSON.stringify(xat) + dm +'::json,';// json of xat
 	}
 
@@ -228,6 +235,8 @@ module.exports = function(pg, conop, schemas){
 		    if(ff === 'xattrs') continue;
 		    if(!(ff in schema.fields)) continue;
 		    qreq += ff + '=';
+		    var dm = dmfig(query[ff]);
+
 		    if(schema.fields[ff].type.indexOf('varchar')>-1){
 			//string
 			//if empty string put null
@@ -238,8 +247,7 @@ module.exports = function(pg, conop, schemas){
 			    qreq += 'null,';
 			    continue;
 			}
-			//determine delimiter
-			var dm = '$nikisgreat$';
+
 			if(schema.fields[ff].type.indexOf('[')===-1){
 			    qreq += dm + query[ff] + dm + ',';
 			}else{
@@ -261,8 +269,6 @@ module.exports = function(pg, conop, schemas){
 			
 		    }else if(schema.fields[ff].type.indexOf('json')>-1){
 			//json
-			//determine delimiter
-			var dm = '$nikisgreat$';
 			if(schema.fields[ff].type.indexOf('[')===-1){
 			    qreq += dm + JSON.stringify(query[ff]) + dm + '::json,';	
 			}else{
@@ -313,7 +319,7 @@ module.exports = function(pg, conop, schemas){
 		if(isx){
 		    qreq += 'xattrs=';
 		    //determine delimiter
-		    var dm = '$nikisgreat$';
+		    var dm = dmfig(xat);
 		    qreq += dm + JSON.stringify(xat) + dm +'::json,';// json of xat
 		}
 
