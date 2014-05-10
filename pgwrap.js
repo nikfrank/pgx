@@ -4,6 +4,8 @@ var crypto = require('crypto');
 // read query into json
 //depth arrays?
 
+// schema cannot have anything called "group"
+
 
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
@@ -392,6 +394,82 @@ module.exports = function(pg, conop, schemas){
 
 	});
 	
+    };
+
+
+    pg.boot = function(req,res){
+	pg.connect(conop, function(err, client, done) {
+	    if(err) return res.json({err:err});
+
+	    var rs = 0;
+	    for(var tt in schemas.db) ++rs;
+	    var rc = rs;
+
+	    var errs = [];
+	    
+	    for(var tt in schemas.db){
+		
+		(function(sn){// sn === tt
+
+		    var sc = schemas.db[sn];
+
+		    client.query('select * from '+sc.tableName, function(err, oldrowres) {
+			if(err) console.log(err);
+			client.query('drop table '+sc.tableName, function(err, result){
+			    if(err) console.log(err);
+			    
+			    var oldrows = (oldrowres||{rows:[]}).rows;
+			    
+			    var qq = 'create table if not exists '+sc.tableName+' (';
+			    for(var ff in sc.fields){
+				qq += ff +' '+ sc.fields[ff].type+',';
+			    }
+			    for(var ff in schemas.defaultFields){
+				qq += ff +' '+ schemas.defaultFields[ff].type+',';
+			    }
+			    qq = qq.substr(0,qq.length-1) + ');';
+
+			    // make the request
+			    (function(qu, oldrows){
+				client.query(qu, function(err, result) {
+				    if(err){
+					errs.push({err:err, query:qu});
+					console.log(err);
+				    }
+				    var rem = oldrows.length;
+
+				    if(!rem) if(!--rc){
+					done();
+		// think about returning successes and errors
+					if(errs.length) return res.json({errs:errs});
+					return res.json({db:schemas.db});
+				    }
+
+				    for(var i=oldrows.length; i-->0;){
+					(function(d){
+					    db.insert(sn, d, {}, function(err, ires){
+						if(err){
+						    errs.push({err:err});
+						    console.log(err);
+						}
+						//count?
+						if(!--rem) if(!--rc){
+						    done();
+	// think about returning successes and errors
+						    if(errs.length) return res.json({errs:errs});
+						    return res.json({db:schemas.db});
+						}
+					    });
+					})(oldrows[i]);
+				    }
+
+				});
+			    })(qq, oldrows);
+			})
+		    });
+		})(tt);
+	    }
+	});
     };
 
     return pg;
