@@ -18,8 +18,10 @@ var dmfig = function(s){
     // determine the first delimiter of style $N$ which isnt present
     var n=0;
     var S = JSON.stringify(s);
-    while( (new RegExp('$'+btoa(n)+'$')).test(S) ) ++n;
-    return '$'+btoa(n)+'$';
+    var ns = btoa(''+((n-n%100)/100)+''+((n%100-n%10)/10)+''+n%10);
+
+    while( (new RegExp('$'+ns+'$')).test(S) ) ++n;
+    return '$'+ns+'$';
 };
 
 
