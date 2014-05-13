@@ -170,7 +170,6 @@ module.exports = function(pg, conop, schemas){
 
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return res.json({err:err});
-console.log(treq);
 	    client.query(treq, function(ierr, ires){
 		//insert value to API_sch
 		done();
