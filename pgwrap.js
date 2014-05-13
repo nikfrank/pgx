@@ -386,6 +386,8 @@ module.exports = function(pg, conop, schemas){
 	    if(err) return res.json({err:err});
 	    client.query(treq, function(err, result) {
 	
+if(err) res.json({err:err});
+
 		//loop through result.rows[i].xattrs[ff] -> result.rows[i][ff]
 		for(var i=result.rows.length; i-->0;){
 		    if(!(schemaName+'_xattrs' in result.rows[i])) continue;
