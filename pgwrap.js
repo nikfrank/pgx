@@ -1,4 +1,5 @@
 var crypto = require('crypto');
+var btoa = require('btoa');
 
 // todo in this file:
 // read query into json
@@ -17,8 +18,8 @@ var dmfig = function(s){
     // determine the first delimiter of style $N$ which isnt present
     var n=0;
     var S = JSON.stringify(s);
-    while( (new Regexp('$'+n+'$')).test(S) ) ++n;
-    return '$'+n+'$';
+    while( (new RegExp('$'+btoa(n)+'$')).test(S) ) ++n;
+    return '$'+btoa(n)+'$';
 };
 
 
@@ -167,7 +168,7 @@ module.exports = function(pg, conop, schemas){
 
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return res.json({err:err});
-
+console.log(treq);
 	    client.query(treq, function(ierr, ires){
 		//insert value to API_sch
 		done();
