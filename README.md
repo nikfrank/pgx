@@ -37,32 +37,58 @@ db.insert(schemaNameOrNames, queryParams, options, callback(err,data))
 
 ** join type **
 
+** options.returning **
 
 todo
 
 write some tests
+
 fill in the docs
 
-read json
-depth arrays?
-
--- xattr packing
-function(schemaName, prev, nu)
+json depth filters (where json->'key'='val')
 
 writing into json
+
 update in one query?
+
+delete rows
+
+see if unpacking xattrs is possible from psql
 
 pg.emptyboot
 
 "order by" type queries
 
-delete rows
+limit queries
+
+range queries
+
+- regexps for strings
+
+- range or modulo for numbers
+
+array and json operators
+
+- contains, not contains, contains at least N of [...]
+
+- dereferenced array & object
+
+'authors[0].name':{$like:'%Frank'}
+'authors[2:5].name':{$like:'%Frank'}
+'authors.name':{$like:'%Frank'}
+'authors':{name:{$like:'%Frank'},location:'tel aviv'}
+'authors':{$elemMatch:{name:{$like:'%Frank'},location:'tel aviv'} }
+...
+implement the useful parts of mongo syntax
+
+this may involve writing actual psql routines and saving them from pg.boot
+
 ------------------------------
 
-pointers to internally defined types (type||hash)
-
-test boot & demo schema with ulp
-
-returning (fields) on all requests instead of default *
-
 transferring data in the instance of non-compatible type change
+
+...
+---
+
+
+write tests & format for node module

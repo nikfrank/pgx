@@ -1,21 +1,7 @@
 var crypto = require('crypto');
 var btoa = require('btoa');
 
-// todo in this file:
-// read json
-//depth arrays?
-
-// clean up this code (lots of copies)
-
-// writing into json
-// update in one query?
-
-// pg.emptyboot
-
-// "order by" type queries
-
 //------------------------------------------------------
-
 // schema cannot have anything called "group" or "user"
 
 var dmfig = function(s){
@@ -31,10 +17,25 @@ var dmfig = function(s){
     return '$'+ns+'$';
 };
 
+var fmtret = function(rop){
+    var rreq = '*';
+    if(rop){
+	if(typeof rop === 'string'){
+	    rreq = rop;
+	}else if(rop.constructor == Array){
+	    rreq = '(';
+	    for(var i=0; i<rop.length; i++) rreq += rop[i] +',';
+	    rreq = rreq.substr(0, rreq.length-1);
+	    rreq += ')';
+	}
+    }
+    return rreq;
+};
+
 var formatas = function(data, type, dm, old){
     // data is the data object, style is which type of query
 
-    // clean out the commas
+    // clean out the commas -> put them in in insert & update... not in read
 
     var ret = '';
 
@@ -174,22 +175,7 @@ module.exports = function(pg, conop, schemas){
 	qreq = qreq.substr(0, qreq.length-1);
 	valreq = valreq.substr(0, valreq.length-1);
 
-	var rreq = '*';
-	if(options.returning){
-	    // option for return value
-	    // document this
-
-	    // returning is a string or an array of strings
-	    if(typeof options.returning === 'string'){
-		rreq = options.returning;
-
-	    }else if(options.returning.constructor == Array){
-		rreq = '(';
-		for(var i=0; i<options.returning.length; i++) rreq += options.returning[i] +',';
-		rreq = rreq.substr(0, rreq.length-1);
-		rreq += ')';
-	    }
-	}
+	var rreq = fmtret(options.returning);
 
 	var treq = qreq + valreq + ') returning '+rreq+';';
 
@@ -294,19 +280,7 @@ module.exports = function(pg, conop, schemas){
 
 		qreq = qreq.substr(0, qreq.length-1);
 
-		var rreq = '*';
-		if(options.returning){
-		    // option for return value
-		    if(typeof options.returning === 'string'){
-			rreq = options.returning;
-
-		    }else if(options.returning.constructor == Array){
-			rreq = '(';
-			for(var i=0; i<options.returning.length; i++) rreq += options.returning[i] +',';
-			rreq = rreq.substr(0, rreq.length-1);
-			rreq += ')';
-		    }
-		}
+		var rreq = fmtret(options.returning);
 
 		var treq = qreq + wreq + ' returning '+rreq+';';
 
@@ -328,6 +302,8 @@ module.exports = function(pg, conop, schemas){
 // THIS IS WHERE TO PUT MULTISCHEMA (JOIN) READS
 //-----------------------------------------------------------------------------------------
 //
+//  ['schema1','schema2'], {schema1:{query}, schema2:{query} }, {returning:{schema1:{r}, schema2:{r} } }
+//
 // if(typeof schemaNameOrNames === 'object')-> // array
 //
 //   determine the join column for these two schema (if none, error!)
@@ -338,23 +314,9 @@ module.exports = function(pg, conop, schemas){
 
 	if(typeof schemaNameOrNames === 'string') schemaName = schemaNameOrNames;
 
-	// build a string (json op the xattrs), make a query
-
 	var schema = schemas.db[schemaName];
 
-	var rreq = '*'; // which columns to select
-	if(options.returning){
-	    // generate sreq string
-	    if(typeof options.returning === 'string'){
-		rreq = options.returning;
-
-	    }else if(options.returning.constructor == Array){
-		rreq = '(';
-		for(var i=0; i<options.returning.length; i++) rreq += options.returning[i] +',';
-		rreq = rreq.substr(0, rreq.length-1);
-		rreq += ')';
-	    }
-	}
+	var rreq = fmtret(options.returning); // which columns to select
 
 	var qreq = 'select '+rreq+' from '+schema.tableName;
 	var wreq = ' where ';
@@ -363,9 +325,37 @@ module.exports = function(pg, conop, schemas){
 	    //int and string is easy as long as it is in the schema
 	    // anything inside an array or json or not in the schema (in xattrs::json) more thinky
 	    if(ff in schema.fields){
+// replace all of this with formatas calls (remove commas from formatas)
+		/*
+		  if(typeof query[ff] === 'object'){
+		    if(query[ff].constructor == Array){
+		      if(typeof query[ff][0] === 'object'){
+		        // what are the postgres array operators?
+		        // obj->'key'='val'
+		      }
+		      else // use formatas
+		    else if(query[ff].constructor == Object){
+		      // obj->'key'='val'
+		    }
+		  }
+		 */
+
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+// THIS IS WHERE TO PUT OPERATOR DYNAMIC (ie range/regexp queries)
+//-----------------------------------------------------------------------------------------
+//
+// if query[ff] is object -> implement mongo queries
+//
+//-----------------------------------------------------------------------------------------
+
 		if(typeof query[ff] === 'string') wreq += ff + '=\'' + query[ff] + '\' and ';
 		else if(typeof query[ff] === 'number') wreq += ff + '=' + query[ff] + ' and ';
-		else if(typeof where[ff] === 'object'){		
+		else if(typeof query[ff] === 'object'){
+
+		    for(var kk in query[ff]){
+			wreq += ff + '->\'' + kk + '\'=';//formatas
+		    }
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 // THIS IS WHERE TO PUT DEPTH READING
@@ -379,11 +369,20 @@ module.exports = function(pg, conop, schemas){
 	    // xattr reads
 	    else{
 		
+		// schemaName_xattrs -> ff = query[ff]
+
 	    }
 	}
 	
 	wreq = wreq.substr(0, wreq.length-4);
 	if(wreq === ' wh') wreq = '';
+
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+// THIS IS WHERE TO PUT SORTED BY, LIMITS
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+	var oreq = '';
 
 	var treq = qreq + wreq + ';';
 
@@ -393,7 +392,7 @@ module.exports = function(pg, conop, schemas){
 		if(err) console.log(err);
 		done();
 
-		//loop through result.rows[i].xattrs[ff] -> result.rows[i][ff]
+		//loop unpack xattrs
 		for(var i=result.rows.length; i-->0;){
 		    if(!(schemaName+'_xattrs' in result.rows[i])) continue;
 		    for(var ff in result.rows[i][schemaName+'_xattrs']){
