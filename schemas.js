@@ -1,14 +1,6 @@
-// think about an (internally defined type & pointer) type, instead of using a scattershot varchar balagan
-
-// type is the schema name, followed by a delimiter followed by the hashpointer (sch|$|sha|$|timestamp)
 module.exports = {
     // write these up for use by pgboot and authM
     defaultFields:{
-	xattrs:{
-	    type:'json',
-	    //permissions:'',//permissions the same as the serial key
-	    defval:{}
-	},
 	hash:{
 	    type:'varchar(31)',
 	    permissions:''

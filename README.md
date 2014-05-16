@@ -35,12 +35,19 @@ db.insert(schemaNameOrNames, queryParams, options, callback(err,data))
 
 ** default fields, values **
 
+** join type **
+
 
 todo
+
+write some tests
+fill in the docs
+
 read json
 depth arrays?
 
-clean up this code (lots of copies)
+-- xattr packing
+function(schemaName, prev, nu)
 
 writing into json
 update in one query?
@@ -48,6 +55,8 @@ update in one query?
 pg.emptyboot
 
 "order by" type queries
+
+delete rows
 ------------------------------
 
 pointers to internally defined types (type||hash)

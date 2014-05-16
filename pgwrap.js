@@ -24,20 +24,108 @@ var dmfig = function(s){
     var S = JSON.stringify(s);
     var ns = btoa(''+((n-n%100)/100)+''+((n%100-n%10)/10)+''+n%10);
 
-    while( (new RegExp('$'+ns+'$')).test(S) ) ++n;
+    while( (new RegExp('$'+ns+'$')).test(S) ){
+	++n;
+	ns = btoa(''+((n-n%100)/100)+''+((n%100-n%10)/10)+''+n%10);
+    }
     return '$'+ns+'$';
 };
 
+var formatas = function(data, type, dm, old){
+    // data is the data object, style is which type of query
+
+    // clean out the commas
+
+    var ret = '';
+
+    //string
+    if(type.indexOf('varchar') !== -1){ // grab varchar \d+ length and truncate?
+	//if empty string put null
+	if((typeof data === 'undefined')||((JSON.stringify(data) === 'null')&&(data !== 'null'))) return 'null,';
+	else if(!data.length) return 'null,';
+
+	if(type.indexOf('[')===-1) return (dm + query[ff] + dm + ',');
+
+	//array
+	else{
+	    if(!data.length) return ('ARRAY[]::'+schema.fields[ff].type+',');
+	    else{
+		ret += 'ARRAY[';
+		for(var i=data.length; i-->0;) ret += dm + data[i] + dm + ',';
+		ret = ret.substr(0, ret.length-1);
+		ret += '],';
+		
+		return ret;
+	    }
+	}
+    }
+
+    //timestamp
+    else if(type === 'timestamp'){
+	if(data === 'now()') return (dm + (new Date()).toISOString() + dm + ',');
+	else return (dm + (new Date(query[ff])).toISOString() + dm + ',');
+    }
+
+    //json
+    else if(type.indexOf('json') !== -1){
+	//XOVR old with data, then write
+	if(typeof old !== 'undefined'){
+	    if(old.constructor == Object){
+		for(var ff in data) old[ff] = data[ff];
+		data = old;
+	    }else if(old.constructor == Array){
+		for(var i=0; i<data.length; i++){
+		    if(!old[i]) old[i] = {};
+		    for(var ff in data[i]) old[i][ff] = data[i][ff];
+		}
+		data = old;
+	    }
+	}
+
+	if(type.indexOf('[') === -1) return (dm + JSON.stringify(data) + dm + '::json,');
+
+	//array
+	else{
+	    if(!data) return 'ARRAY[]::json[],';
+	    else if(!data.length) return 'ARRAY[]::json[],';
+	    else{
+		ret += 'ARRAY[';
+		for(var i=data.length; i-->0;)
+		    ret += dm + JSON.stringify(data[i]) + dm + '::json,';
+		ret = ret.substr(0, ret.length-1);
+		ret += '],';
+
+		return ret;
+	    }
+	}
+    }
+
+    // int/bool
+    else{
+	if(type.indexOf('[') === -1) return ('' + data + ',');
+
+	//array
+	else{
+	    if(!data) return ('ARRAY[]::'+type+',');
+	    else if(!data.length) return 'null,';
+	    else{
+		ret += 'ARRAY[';
+		for(var i=data.length; i-->0;) ret += data[i] + ',';
+		ret = ret.substr(0, ret.length-1);
+		ret += '],';
+		
+		return ret;
+	    }
+	}
+    }
+
+
+};
 
 module.exports = function(pg, conop, schemas){
 
     pg.conop = conop;
     pg.schemas = schemas;
-
-    var formatas = function(data, style){
-	// data is the data object, style is which type of query
-    };
-
     
     pg.insert = function(schemaName, query, options, callback){
 	
@@ -55,7 +143,7 @@ module.exports = function(pg, conop, schemas){
 	    query.hash = digest;//28chars good enough
 	}
 
-//extend this for multidim arrays?
+	// build the insert statement
 	for(var ff in schema.fields){
 	    if(ff === schemaName+'_xattrs') continue;
 	    if(!(ff in query)) if('defval' in schema.fields[ff]) query[ff] = schema.fields[ff].defval;
@@ -65,115 +153,52 @@ module.exports = function(pg, conop, schemas){
 		
 		var dm = dmfig(query[ff]);
 
-		if(schema.fields[ff].type.indexOf('varchar')>-1){
-		    //string
-		    //if empty string put null
-		    if((typeof query[ff] === 'undefined')||
-		       ((JSON.stringify(query[ff]) === 'null')&&(query[ff] !== 'null'))){
-			valreq += 'null,';
-			continue;
-		    }
-
-// there might be some bugs relating to pulling null out of the db. keep these here in the meantime
-		    if(!query[ff].length){
-			valreq += 'null,';
-			continue;
-		    }
-
-		    if(schema.fields[ff].type.indexOf('[')===-1){
-			valreq += dm + query[ff] + dm + ',';
-		    }else{
-			//array
-			if(!query[ff].length){
-			    valreq += ',';
-			}else{
-			    valreq += 'ARRAY[';
-			    for(var i=query[ff].length; i-->0;) valreq += dm + query[ff][i] + dm + ',';
-			    valreq = valreq.substr(0, valreq.length-1);
-			    valreq += '],';
-			}
-		    }
-
-
-		}else if(schema.fields[ff].type === 'timestamp'){
-		    //timestamp
-		    if(query[ff] === 'now()') valreq += dm + (new Date()).toISOString() + dm + ',';
-		    else valreq += dm + (new Date(query[ff])).toISOString() + dm + ',';
-
-
-		}else if(schema.fields[ff].type.indexOf('json')>-1){
-		    //json
-		    if(schema.fields[ff].type.indexOf('[')===-1){
-			valreq += dm + JSON.stringify(query[ff]) + dm + '::json,';	
-		    }else{
-			//array
-			if(!query[ff]){
-			    valreq += 'ARRAY[]::json[],';
-			}else if(!query[ff].length){
-			    valreq += 'ARRAY[]::json[],';
-			}else{
-			    valreq += 'ARRAY[';
-			    for(var i=query[ff].length; i-->0;) valreq += dm + JSON.stringify(query[ff][i]) + dm + '::json,';
-			    valreq = valreq.substr(0, valreq.length-1);
-			    valreq += '],';
-			}
-		    }
-
-		}else{
-		    // int/bool
-		    if(schema.fields[ff].type.indexOf('[')===-1){
-			valreq += '' + query[ff] + ',';
-		    }else{
-			//array
-			if(!query[ff]){
-			    valreq += 'ARRAY[]::'+schema.fields[ff].type+',';
-			}else if(!query[ff].length){
-			    valreq += 'null,';
-			}else{
-			    valreq += 'ARRAY[';
-			    for(var i=query[ff].length; i-->0;) valreq += query[ff][i] + ',';
-			    valreq = valreq.substr(0, valreq.length-1);
-			    valreq += '],';
-			}
-		    }
-		}
+		valreq += formatas(query[ff], schema.fields[ff].type, dm);
 	    }
 	}
 
 	//put the other fields of query into xattrs if any
-	var isx = false;
-	var xat = {};
-	if(schemaName+'_xattrs' in query){
-	    xat = query[schemaName+'_xattrs'];
-	    isx = (JSON.stringify(xat).length>2)
-	}// pull out existing xattrs
+	var xat = query[schemaName+'_xattrs']||{};
 	for(var ff in query){
 	    if(ff === schemaName+'_xattrs') continue;
-	    if(!(ff in schema.fields)){
-		isx = true;
-		xat[ff] = query[ff];
-	    }
-	}// xor with query
-	if(isx){
+	    if(!(ff in schema.fields)) xat[ff] = query[ff];
+	}
+	if(JSON.stringify(xat).length>2){
 	    qreq += schemaName+'_xattrs,';
 	    var dm = dmfig(xat);
-	    valreq += dm + JSON.stringify(xat) + dm +'::json,';// json of xat
-	}// format for insertion
+	    valreq += dm + JSON.stringify(xat) + dm +'::json,';
+	}
 
 	if(qreq.length === 21) return callback({err:'nodata'});
 
 	qreq = qreq.substr(0, qreq.length-1);
 	valreq = valreq.substr(0, valreq.length-1);
 
-	var treq = qreq + valreq + ') returning *;';// option for return value
+	var rreq = '*';
+	if(options.returning){
+	    // option for return value
+	    // document this
 
-//document this
-	if(options) if(options.justString) return treq;
+	    // returning is a string or an array of strings
+	    if(typeof options.returning === 'string'){
+		rreq = options.returning;
+
+	    }else if(options.returning.constructor == Array){
+		rreq = '(';
+		for(var i=0; i<options.returning.length; i++) rreq += options.returning[i] +',';
+		rreq = rreq.substr(0, rreq.length-1);
+		rreq += ')';
+	    }
+	}
+
+	var treq = qreq + valreq + ') returning '+rreq+';';
 
 	pg.connect(conop, function(err, client, done) {
-	    if(err) return res.json({err:err});
+	    if(err) return res.json({connection_err:err});
+
 	    client.query(treq, function(ierr, ires){
-		//insert value to API_sch
+		if(ierr) return res.json({ierr:ierr});
+
 		done();
 		return callback(ierr, ires);
 	    });
@@ -212,8 +237,10 @@ module.exports = function(pg, conop, schemas){
 	}
 	wreq = wreq.substr(0, wreq.length-4);
 
-	// maybe only select what's being updated
-	var sreq = 'select * from '+schema.tableName+wreq+';';
+	var urreq = '*';
+	// loop through query and where to grab only fields requested
+
+	var sreq = 'select '+urreq+' from '+schema.tableName+wreq+';';
 
 	// select the record
 	pg.connect(conop, function(err, client, done) {
@@ -236,110 +263,56 @@ module.exports = function(pg, conop, schemas){
 		    return pg.insert(schemaName, qq, options, callback);
 		}
 
+		// build the query for updating
 		var doc = sres.rows[0];
-
-		//extend this for multidim arrays?
 		for(ff in query){
 		    if(ff === schemaName+'_xattrs') continue;
 		    if(!(ff in schema.fields)) continue;
 		    qreq += ff + '=';
 		    var dm = dmfig(query[ff]);
 
-		    if(schema.fields[ff].type.indexOf('varchar')>-1){
-			//string
-			//if empty string put null
-			if(!query[ff]){
-			    qreq += 'null,';
-			    continue;
-			}else if(!query[ff].length){
-			    qreq += 'null,';
-			    continue;
-			}
+//document options.xorjson
+		    if(schema.fields[ff].type.indexOf('json')>-1) if(options.xorjson) old = doc[ff];
 
-			if(schema.fields[ff].type.indexOf('[')===-1){
-			    qreq += dm + query[ff] + dm + ',';
-			}else{
-			    //array
-			    if(!query[ff].length){
-				qreq += 'ARRAY[]::'+schema.fields[ff].type+',';
-			    }else{
-				qreq += 'ARRAY[';
-				for(var i=query[ff].length; i-->0;) qreq += dm + query[ff][i] + dm + ',';
-				qreq = qreq.substr(0, qreq.length-1);
-				qreq += '],';
-			    }
-			}
+		    qreq += formatas(query[ff], schema.fields[ff].type, dm, old);
 
-
-		    }else if(schema.fields[ff].type === 'timestamp'){
-			//timestamp
-			qreq += dm + query[ff] + dm + ',';
-			
-		    }else if(schema.fields[ff].type.indexOf('json')>-1){
-			//json
-			if(schema.fields[ff].type.indexOf('[')===-1){
-// this should be query || doc
-			    qreq += dm + JSON.stringify(query[ff]) + dm + '::json,';	
-			}else{
-			    //array
-			    if(!query[ff].length){
-				qreq += 'ARRAY[]::json[],';
-			    }else{
-				qreq += 'ARRAY[';
-				for(var i=query[ff].length; i-->0;) qreq += dm + JSON.stringify(query[ff][i]) + dm + '::json,';
-// again, xor the new values over doc
-				qreq = qreq.substr(0, qreq.length-1);
-				qreq += '],';
-			    }
-			}
-			
-		    }else{
-			// int/bool
-			if(schema.fields[ff].type.indexOf('[')===-1){
-			    qreq += '' + query[ff] + ',';
-			}else{
-			    //array
-			    if(!query[ff]){
-				qreq += 'null,';
-			    }else if(!query[ff].length){
-				qreq += 'null,';
-			    }else{
-				qreq += 'ARRAY[';
-				for(var i=query[ff].length; i-->0;) qreq += query[ff][i] + ',';
-				qreq = qreq.substr(0, qreq.length-1);
-				qreq += '],';
-			    }
-			}
-		    }
 		}
 
 		//put the other fields of query into xattrs if any
-		var isx = false;
-		var xat = doc[schemaName+'_xattrs'];
+		var xat = doc[schemaName+'_xattrs']||{};
 		for(var ff in query){
 		    if(ff === schemaName+'_xattrs') continue;
-		    if(!(ff in schema.fields)){
-			// put into xattrs
-			isx = true;
-			if(xat === null) xat = {};
-			xat[ff] = query[ff];
-		    }
+		    if(!(ff in schema.fields)) xat[ff] = query[ff];
 		}
-		if(isx){
+		if(JSON.stringify(xat).length>2){
 		    qreq += schemaName+'_xattrs=';
-		    //determine delimiter
 		    var dm = dmfig(xat);
-		    qreq += dm + JSON.stringify(xat) + dm +'::json,';// json of xat
+		    qreq += dm + JSON.stringify(xat) + dm +'::json,';
 		}
 
 		if(qreq.length === 21) return callback({err:'nodata'});
 
 		qreq = qreq.substr(0, qreq.length-1);
 
-		var treq = qreq + wreq + ' returning *;';// option for return value
+		var rreq = '*';
+		if(options.returning){
+		    // option for return value
+		    if(typeof options.returning === 'string'){
+			rreq = options.returning;
+
+		    }else if(options.returning.constructor == Array){
+			rreq = '(';
+			for(var i=0; i<options.returning.length; i++) rreq += options.returning[i] +',';
+			rreq = rreq.substr(0, rreq.length-1);
+			rreq += ')';
+		    }
+		}
+
+		var treq = qreq + wreq + ' returning '+rreq+';';
 
 		client.query(treq, function(ierr, ires){
-		    //insert value to API_sch
+		    if(ierr) return res.json({ierr:ierr});
+
 		    done();
 		    return callback(ierr, ires);
 		});
@@ -347,28 +320,43 @@ module.exports = function(pg, conop, schemas){
 	});
     };
 
-    pg.read = function(schemaName, query, options, callback){
 
 
+    pg.read = function(schemaNameOrNames, query, options, callback){
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 // THIS IS WHERE TO PUT MULTISCHEMA (JOIN) READS
 //-----------------------------------------------------------------------------------------
+//
+// if(typeof schemaNameOrNames === 'object')-> // array
+//
+//   determine the join column for these two schema (if none, error!)
+//   query should be split by schema
+//   select s1.returning,s2.returning from s1.tn join s2.tn on join-column1=join-column2
+//      where s1.where and s2.where
 //-----------------------------------------------------------------------------------------
 
+	if(typeof schemaNameOrNames === 'string') schemaName = schemaNameOrNames;
 
 	// build a string (json op the xattrs), make a query
 
 	var schema = schemas.db[schemaName];
 
-//-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
-// THIS IS WHERE TO PUT SELECTIVE READING
-//-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
-	var sreq = '*'; // which columns to select
+	var rreq = '*'; // which columns to select
+	if(options.returning){
+	    // generate sreq string
+	    if(typeof options.returning === 'string'){
+		rreq = options.returning;
 
-	var qreq = 'select '+sreq+' from '+schema.tableName;
+	    }else if(options.returning.constructor == Array){
+		rreq = '(';
+		for(var i=0; i<options.returning.length; i++) rreq += options.returning[i] +',';
+		rreq = rreq.substr(0, rreq.length-1);
+		rreq += ')';
+	    }
+	}
+
+	var qreq = 'select '+rreq+' from '+schema.tableName;
 	var wreq = ' where ';
 
 	for(var ff in query){
@@ -382,22 +370,19 @@ module.exports = function(pg, conop, schemas){
 //-----------------------------------------------------------------------------------------
 // THIS IS WHERE TO PUT DEPTH READING
 //-----------------------------------------------------------------------------------------
+//   this should also be used in all cases of xattr query
+//    xattrs->'key'='val' (I think)
 //-----------------------------------------------------------------------------------------
-
-		    //this should also be used in all cases of xattr query
-		    // xattrs->'key'='val' (I think)
-
 		}
+	    }
 
-		//from array or json
-	    }else{
-		// xattr reads
+	    // xattr reads
+	    else{
 		
 	    }
 	}
 	
 	wreq = wreq.substr(0, wreq.length-4);
-
 	if(wreq === ' wh') wreq = '';
 
 	var treq = qreq + wreq + ';';
@@ -406,6 +391,7 @@ module.exports = function(pg, conop, schemas){
 	    if(err) return res.json({err:err});
 	    client.query(treq, function(err, result) {
 		if(err) console.log(err);
+		done();
 
 		//loop through result.rows[i].xattrs[ff] -> result.rows[i][ff]
 		for(var i=result.rows.length; i-->0;){
@@ -415,7 +401,6 @@ module.exports = function(pg, conop, schemas){
 		    }
 		    delete result.rows[i][schemaName+'_xattrs'];
 		}
-		done();
 		return callback(err, (result||{rows:[]}).rows);
 	    });
 
@@ -424,7 +409,13 @@ module.exports = function(pg, conop, schemas){
     };
 
 
+
     pg.boot = function(req,res){
+
+// this needs option for not porting data
+// and a check for isNewTable?
+
+// maybe later a check for column rename (or simply an option)
 
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return res.json({err:err});
@@ -490,7 +481,6 @@ module.exports = function(pg, conop, schemas){
 					    });
 					})(oldrows[i]);
 				    }
-
 				});
 			    })(qq, oldrows);
 			})
@@ -502,3 +492,88 @@ module.exports = function(pg, conop, schemas){
 
     return pg;
 }
+
+
+
+
+// from .insert
+
+/*
+		//string
+		if(schema.fields[ff].type.indexOf('varchar')>-1){
+		    //if empty string put null
+		    if((typeof query[ff] === 'undefined')||
+		       ((JSON.stringify(query[ff]) === 'null')&&(query[ff] !== 'null'))){
+			valreq += 'null,';
+			continue;
+		    }else if(!query[ff].length){
+			valreq += 'null,';
+			continue;
+		    }
+
+		    if(schema.fields[ff].type.indexOf('[')===-1){
+			valreq += dm + query[ff] + dm + ',';
+		    }
+
+		    //array
+		    else{
+			if(!query[ff].length){
+			    valreq += 'ARRAY[]::'+schema.fields[ff].type+',';
+			}else{
+			    valreq += 'ARRAY[';
+			    for(var i=query[ff].length; i-->0;) valreq += dm + query[ff][i] + dm + ',';
+			    valreq = valreq.substr(0, valreq.length-1);
+			    valreq += '],';
+			}
+		    }
+		}
+
+		//timestamp
+		else if(schema.fields[ff].type === 'timestamp'){
+		    if(query[ff] === 'now()') valreq += dm + (new Date()).toISOString() + dm + ',';
+		    else valreq += dm + (new Date(query[ff])).toISOString() + dm + ',';
+		}
+
+		//json
+		else if(schema.fields[ff].type.indexOf('json')>-1){
+		    if(schema.fields[ff].type.indexOf('[')===-1){
+			valreq += dm + JSON.stringify(query[ff]) + dm + '::json,';	
+		    }
+
+		    //array
+		    else{
+			if(!query[ff]){
+			    valreq += 'ARRAY[]::json[],';
+			}else if(!query[ff].length){
+			    valreq += 'ARRAY[]::json[],';
+			}else{
+			    valreq += 'ARRAY[';
+			    for(var i=query[ff].length; i-->0;)
+				valreq += dm + JSON.stringify(query[ff][i]) + dm + '::json,';
+			    valreq = valreq.substr(0, valreq.length-1);
+			    valreq += '],';
+			}
+		    }
+		}
+
+		// int/bool
+		else{
+		    if(schema.fields[ff].type.indexOf('[')===-1){
+			valreq += '' + query[ff] + ',';
+		    }
+
+		    //array
+		    else{
+			if(!query[ff]){
+			    valreq += 'ARRAY[]::'+schema.fields[ff].type+',';
+			}else if(!query[ff].length){
+			    valreq += 'null,';
+			}else{
+			    valreq += 'ARRAY[';
+			    for(var i=query[ff].length; i-->0;) valreq += query[ff][i] + ',';
+			    valreq = valreq.substr(0, valreq.length-1);
+			    valreq += '],';
+			}
+		    }
+		}
+*/
