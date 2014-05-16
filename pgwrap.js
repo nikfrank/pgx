@@ -2,17 +2,21 @@ var crypto = require('crypto');
 var btoa = require('btoa');
 
 // todo in this file:
-// read query into json
+// read json
 //depth arrays?
 
-// schema cannot have anything called "group"
+// clean up this code (lots of copies)
 
+// writing into json
+// update in one query?
 
-//-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
-// all pg.connect queries need to be reviewed and converted to prepared statements
-//-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
+// pg.emptyboot
+
+// "order by" type queries
+
+//------------------------------------------------------
+
+// schema cannot have anything called "group" or "user"
 
 var dmfig = function(s){
     // determine the first delimiter of style $N$ which isnt present
@@ -29,10 +33,14 @@ module.exports = function(pg, conop, schemas){
 
     pg.conop = conop;
     pg.schemas = schemas;
+
+    var formatas = function(data, style){
+	// data is the data object, style is which type of query
+    };
+
     
     pg.insert = function(schemaName, query, options, callback){
 	
-// use schema.tableName
 	var schema = schemas.db[schemaName];
 
 	var qreq = 'insert into '+schema.tableName+' (';
@@ -111,7 +119,6 @@ module.exports = function(pg, conop, schemas){
 			}
 		    }
 
-
 		}else{
 		    // int/bool
 		    if(schema.fields[ff].type.indexOf('[')===-1){
@@ -138,25 +145,20 @@ module.exports = function(pg, conop, schemas){
 	var xat = {};
 	if(schemaName+'_xattrs' in query){
 	    xat = query[schemaName+'_xattrs'];
-
 	    isx = (JSON.stringify(xat).length>2)
-	}
-
+	}// pull out existing xattrs
 	for(var ff in query){
 	    if(ff === schemaName+'_xattrs') continue;
-
 	    if(!(ff in schema.fields)){
-		// put into xattrs
 		isx = true;
 		xat[ff] = query[ff];
 	    }
-	}
+	}// xor with query
 	if(isx){
 	    qreq += schemaName+'_xattrs,';
-
 	    var dm = dmfig(xat);
 	    valreq += dm + JSON.stringify(xat) + dm +'::json,';// json of xat
-	}
+	}// format for insertion
 
 	if(qreq.length === 21) return callback({err:'nodata'});
 
@@ -176,13 +178,11 @@ module.exports = function(pg, conop, schemas){
 		return callback(ierr, ires);
 	    });
 	});
-
     };
 
 
     pg.update = function(schemaName, input, options, callback){
 	
-// use schema.tableName
 	var schema = schemas.db[schemaName];
 
 	var qreq = 'update '+schema.tableName+' set ';
@@ -191,38 +191,40 @@ module.exports = function(pg, conop, schemas){
 	var where = input.where;
 	var query = input.data;
 	
-//slap together wreq out of the where collection
-// this obv only works for string and number queries right now
-
+	// where query
+	for(var ff in where){
+	    if(ff in schema.fields){
+		if(typeof where[ff] === 'string') wreq += ff + '=\'' + where[ff] + '\' and ';
+		else if(typeof where[ff] === 'number') wreq += ff + '=' + where[ff] + ' and ';
+		else if(typeof where[ff] === 'object'){		
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 // THIS IS WHERE TO PUT DEPTH READING
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 
-
-	for(var ff in where){
-	    if(typeof where[ff] === 'string') wreq += ff + '=\'' + where[ff] + '\' and ';
-	    if(typeof where[ff] === 'number') wreq += ff + '=' + where[ff] + ' and ';
+		    //this should also be used in all cases of xattr query
+		    // xattrs->'key'='val' (I think)
+		}
+	    }else{
+		// xattr reads
+	    }
 	}
 	wreq = wreq.substr(0, wreq.length-4);
 
 	// maybe only select what's being updated
-// use schema.tableName
 	var sreq = 'select * from '+schema.tableName+wreq+';';
 
-// select the record, which for now should be unique
-
+	// select the record
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return res.json({err:err});
 	    client.query(sreq, function(serr, sres){
 
+		// insert if n'exist pas
 		if(!sres.rows.length){
-
 		    done();
 
- // check if insert is allowed
-		    if(options.noinsert){
+		    if(options.noinsert){ // document this
 			return callback({err:'noent', where:where});
 		    }
 
@@ -232,7 +234,6 @@ module.exports = function(pg, conop, schemas){
 		    for(var ff in where) qq[ff] = where[ff];
 
 		    return pg.insert(schemaName, qq, options, callback);
-		    //return callback({err:'noent'});
 		}
 
 		var doc = sres.rows[0];
@@ -277,6 +278,7 @@ module.exports = function(pg, conop, schemas){
 		    }else if(schema.fields[ff].type.indexOf('json')>-1){
 			//json
 			if(schema.fields[ff].type.indexOf('[')===-1){
+// this should be query || doc
 			    qreq += dm + JSON.stringify(query[ff]) + dm + '::json,';	
 			}else{
 			    //array
@@ -285,11 +287,11 @@ module.exports = function(pg, conop, schemas){
 			    }else{
 				qreq += 'ARRAY[';
 				for(var i=query[ff].length; i-->0;) qreq += dm + JSON.stringify(query[ff][i]) + dm + '::json,';
+// again, xor the new values over doc
 				qreq = qreq.substr(0, qreq.length-1);
 				qreq += '],';
 			    }
 			}
-			
 			
 		    }else{
 			// int/bool
@@ -347,13 +349,26 @@ module.exports = function(pg, conop, schemas){
 
     pg.read = function(schemaName, query, options, callback){
 
+
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+// THIS IS WHERE TO PUT MULTISCHEMA (JOIN) READS
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+
+
 	// build a string (json op the xattrs), make a query
 
 	var schema = schemas.db[schemaName];
 
-// only read fields in options.fields?
-// use schema.tableName
-	var qreq = 'select * from '+schema.tableName;
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+// THIS IS WHERE TO PUT SELECTIVE READING
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+	var sreq = '*'; // which columns to select
+
+	var qreq = 'select '+sreq+' from '+schema.tableName;
 	var wreq = ' where ';
 
 	for(var ff in query){
@@ -362,16 +377,21 @@ module.exports = function(pg, conop, schemas){
 	    if(ff in schema.fields){
 		if(typeof query[ff] === 'string') wreq += ff + '=\'' + query[ff] + '\' and ';
 		else if(typeof query[ff] === 'number') wreq += ff + '=' + query[ff] + ' and ';
-		//from array or json
-	    }else{
-		// from json
-
-
+		else if(typeof where[ff] === 'object'){		
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 // THIS IS WHERE TO PUT DEPTH READING
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
+
+		    //this should also be used in all cases of xattr query
+		    // xattrs->'key'='val' (I think)
+
+		}
+
+		//from array or json
+	    }else{
+		// xattr reads
 		
 	    }
 	}
@@ -385,8 +405,7 @@ module.exports = function(pg, conop, schemas){
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return res.json({err:err});
 	    client.query(treq, function(err, result) {
-	
-if(err) console.log(err);
+		if(err) console.log(err);
 
 		//loop through result.rows[i].xattrs[ff] -> result.rows[i][ff]
 		for(var i=result.rows.length; i-->0;){
