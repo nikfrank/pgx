@@ -1,5 +1,6 @@
 pg wrap odm for node- postgres
 
+
 docs:
 
 boot process:
@@ -18,12 +19,16 @@ db.boot
 
 ** fix it, add NoDataTransfer option, document **
 
+throwSelect, throwDrop
+
 
 pg-flex (thats the new name) gives you:
 
 db.read(schemaNameOrNames, queryParams, options, callback(err,data))
 db.upsert(schemaNameOrNames, queryParams, options, callback(err,data))
 db.insert(schemaNameOrNames, queryParams, options, callback(err,data))
+
+in addition to the original pg.connect -> client -> query -> ... routine
 
 ** check these siggies. I'm doing this from memory **
 
@@ -41,17 +46,18 @@ db.insert(schemaNameOrNames, queryParams, options, callback(err,data))
 
 todo
 
+emptydb
+dropalltables
+
 write some tests
 
 fill in the docs
 
 json depth filters (where json->'key'='val')
 
-writing into json
-
-update in one query?
-
 delete rows
+
+schema verify schema cannot have anything called "group" or "user" or starting with a $
 
 see if unpacking xattrs is possible from psql
 
@@ -66,6 +72,8 @@ range queries
 - regexps for strings
 
 - range or modulo for numbers
+
+diffs as a data type/schema option
 
 array and json operators
 
@@ -92,3 +100,15 @@ transferring data in the instance of non-compatible type change
 
 
 write tests & format for node module
+
+
+
+...
+---
+
+
+writing into json
+
+json updates are done as read+ write in psql 9.3
+
+update in one query?

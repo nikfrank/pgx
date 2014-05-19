@@ -38,11 +38,13 @@ module.exports = {
 		},
 		conjrule:{
 		    type:'varchar(63)',
-		    permissions:''
+		    permissions:'',
+		    jointype:'rule'
 		},
 		conjexp:{
 		    type:'json',
-		    permissions:''
+		    permissions:'',
+		    jointype:'rule'
 		},
 		transform_exp:{
 		    type:'json[]',
@@ -63,6 +65,32 @@ module.exports = {
 		    permissions:''
 		}
 	    }// </fields>
+	},
+
+	phrase:{
+	    tableName:'api_phrase',
+	    permissions:{
+		// yet to define this field
+	    },
+	    fields:{
+		phrase_id:{
+		    type:'serial primary key',
+		    permissions:''
+		}
+	    }
+	},
+
+	tln:{
+	    tableName:'api_tln',
+	    permissions:{
+		// yet to define this field
+	    },
+	    fields:{
+		tln_id:{
+		    type:'serial primary key',
+		    permissions:''
+		}
+	    }
 	},
 
 	rule:{
@@ -107,9 +135,10 @@ module.exports = {
 		    type:'json',
 		    permissions:''
 		},
-		exps:{// this to be an array of pointers to rules
+		exps:{
 		    type:'json[]',
-		    permissions:''
+		    permissions:'',
+		    jointype:'rule'
 		},
 		created:{
 		    type:'timestamp',
@@ -189,7 +218,6 @@ module.exports = {
 	schemas:{
 	    word:{
 		word_id:'serial id',
-// think about an (internally defined type & pointer) type, instead of using a scattershot varchar balagan
 		lang:'lang (to be pointer once programmed)',
 		type:'grammatical type of the word',
 		root:'unconjugated root',
@@ -200,6 +228,22 @@ module.exports = {
 		created:'time on creation',
 		updated:'time on update',
 		author:'user original author (pointer)'
+	    },
+
+	    phrase:{
+		
+	    },
+
+	    tln:{
+		
+	    },
+
+	    rule:{
+		
+	    },
+
+	    lang:{
+		
 	    }
 	},// </schemas>
 
