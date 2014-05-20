@@ -48,6 +48,15 @@ in addition to the original pg.connect -> client -> query -> ... routine
 
 todo
 
+document return types:
+
+insert (1 record, json)
+upsert (array of objects updated)
+read (array of objects read)
+
+insertBatch (array of inserted objects)
+...
+
 emptydb
 dropalltables
 

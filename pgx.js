@@ -1,123 +1,6 @@
 var crypto = require('crypto');
 var btoa = require('btoa');
 
-var dmfig = function(s){
-    // determine the first delimiter of style $N$ which isnt present
-    var n=0;
-    var S = JSON.stringify(s);
-    var ns = btoa(''+((n-n%100)/100)+''+((n%100-n%10)/10)+''+n%10);
-
-    while( (new RegExp('$'+ns+'$')).test(S) ){
-	++n;
-	ns = btoa(''+((n-n%100)/100)+''+((n%100-n%10)/10)+''+n%10);
-    }
-    return '$'+ns+'$';
-};
-
-var fmtret = function(rop){
-    var rreq = '*';
-    if(rop){
-	if(typeof rop === 'string'){
-	    rreq = rop;
-	}else if(rop.constructor == Array){
-	    rreq = '(';
-	    for(var i=0; i<rop.length; i++) rreq += rop[i] +',';
-	    rreq = rreq.substr(0, rreq.length-1);
-	    rreq += ')';
-	}
-    }
-    return rreq;
-};
-
-var formatas = function(data, type, dm, old){
-    // data is the data object, style is which type of query
-
-    var ret = '';
-
-    //string
-    if(type.indexOf('varchar') !== -1){ // grab varchar \d+ length and truncate?
-	//if empty string put null
-	if((typeof data === 'undefined')||((JSON.stringify(data) === 'null')&&(data !== 'null'))) return 'null';
-	else if(!data.length) return 'null';
-
-	if(type.indexOf('[')===-1) return (dm + data + dm);
-
-	//array
-	else{
-	    if(!data.length) return ('ARRAY[]::'+schema.fields[ff].type);
-	    else{
-		ret += 'ARRAY[';
-		for(var i=data.length; i-->0;) ret += dm + data[i] + dm + ',';
-		ret = ret.substr(0, ret.length-1);
-		ret += ']';
-		
-		return ret;
-	    }
-	}
-    }
-
-    //timestamp
-    else if(type === 'timestamp'){
-	if(data === 'now()') return (dm + (new Date()).toISOString() + dm);
-	else return (dm + (new Date(query[ff])).toISOString() + dm);
-    }
-
-    //json
-    else if(type.indexOf('json') !== -1){
-	//XOVR old with data, then write
-	if(typeof old !== 'undefined'){
-	    if(old.constructor == Object){
-		for(var ff in data) old[ff] = data[ff];
-		data = old;
-	    }else if(old.constructor == Array){
-		for(var i=0; i<data.length; i++){
-		    if(!old[i]) old[i] = {};
-		    for(var ff in data[i]) old[i][ff] = data[i][ff];
-		}
-		data = old;
-	    }
-	}
-
-	if(type.indexOf('[') === -1) return (dm + JSON.stringify(data) + dm + '::json');
-
-	//array
-	else{
-	    if(!data) return 'ARRAY[]::json[]';
-	    else if(!data.length) return 'ARRAY[]::json[]';
-	    else{
-		ret += 'ARRAY[';
-		for(var i=data.length; i-->0;)
-		    ret += dm + JSON.stringify(data[i]) + dm + '::json,';
-		ret = ret.substr(0, ret.length-1);
-		ret += ']';
-
-		return ret;
-	    }
-	}
-    }
-
-    // int/bool
-    else{
-	if(type.indexOf('[') === -1) return ('' + data);
-
-	//array
-	else{
-	    if(!data) return ('ARRAY[]::'+type);
-	    else if(!data.length) return 'null';
-	    else{
-		ret += 'ARRAY[';
-		for(var i=data.length; i-->0;) ret += data[i] + ',';
-		ret = ret.substr(0, ret.length-1);
-		ret += ']';
-		
-		return ret;
-	    }
-	}
-    }
-
-
-};
-
 module.exports = function(pg, conop, schemas){
 
     pg.conop = conop;
@@ -192,7 +75,7 @@ module.exports = function(pg, conop, schemas){
 	    client.query(treq, function(ierr, ires){
 
 		done();
-		return callback(ierr, (result||{}).rows);
+		return callback(ierr, (ires||{rows:[]}).rows[0]);
 	    });
 	});
     };
@@ -216,31 +99,12 @@ module.exports = function(pg, conop, schemas){
 	var schema = schemas.db[schemaName];
 
 	var qreq = 'update '+schema.tableName+' set ';
-	var wreq = ' where ';
 
 	var where = input.where;
 	var query = input.data;
-	
-	// where query
-	for(var ff in where){
-	    if(ff in schema.fields){
-		if(typeof where[ff] === 'string') wreq += ff + '=\'' + where[ff] + '\' and ';
-		else if(typeof where[ff] === 'number') wreq += ff + '=' + where[ff] + ' and ';
-		else if(typeof where[ff] === 'object'){		
-//-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
-// THIS IS WHERE TO PUT DEPTH READING
-//-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
 
-		    //this should also be used in all cases of xattr query
-		    // xattrs->'key'='val' (I think)
-		}
-	    }else{
-		// xattr reads
-	    }
-	}
-	wreq = wreq.substr(0, wreq.length-4);
+	var wreq = fmtwhere(schemaName, where);
+	
 
 	var urreq = '*';
 	// loop through query and where to grab only fields requested
@@ -249,8 +113,9 @@ module.exports = function(pg, conop, schemas){
 
 	// select the record
 	pg.connect(conop, function(err, client, done) {
-	    if(err) return res.json({err:err});
+	    if(err) return callback({err:err});
 	    client.query(sreq, function(serr, sres){
+		if(serr) return callback({err:serr, req:sreq});
 
 		// insert if n'exist pas
 		if(!sres.rows.length){
@@ -276,6 +141,8 @@ module.exports = function(pg, conop, schemas){
 		    qreq += ff + '=';
 		    var dm = dmfig(query[ff]);
 
+		    var old;
+
 //document options.xorjson
 		    if(schema.fields[ff].type.indexOf('json')>-1) if(options.xorjson) old = doc[ff];
 
@@ -296,6 +163,7 @@ module.exports = function(pg, conop, schemas){
 		}
 
 		if(qreq.length === 21) return callback({err:'nodata'});
+// do a similar check for where stmt
 
 		qreq = qreq.substr(0, qreq.length-1);
 
@@ -304,10 +172,12 @@ module.exports = function(pg, conop, schemas){
 		var treq = qreq + wreq + ' returning '+rreq+';';
 
 		client.query(treq, function(ierr, ires){
-		    if(ierr) return res.json({ierr:ierr});
+
+		    var ep;
+		    if(ierr) ep = {err:ierr, stmt:treq};
 
 		    done();
-		    return callback(ierr, (ires||{}).rows);
+		    return callback(ep, (ires||{}).rows);
 		});
 	    });
 	});
@@ -338,52 +208,8 @@ module.exports = function(pg, conop, schemas){
 	var rreq = fmtret(options.returning); // which columns to select
 
 	var qreq = 'select '+rreq+' from '+schema.tableName;
-	var wreq = ' where ';
-
-	for(var ff in query){
-	    if(ff in schema.fields){
-
-		if(typeof query[ff] === 'object'){
-
-//-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
-// THIS IS WHERE TO PUT OPERATOR DYNAMIC (ie range/regexp queries)
-//-----------------------------------------------------------------------------------------
-//
-// if query[ff] is object, if the field name starts with $ -> implement mongo type query
-//
-//-----------------------------------------------------------------------------------------
-// if this is a simple depth read case:
-// (this is where to put recursive depth reading)
-// this currently only supports tring depth reads.
-
-		    for(var kk in query[ff]){
-			
-			var dmk = dmfig(kk);
-			var dm = dmfig(query[ff][kk]);
-			wreq += ff + '->>' + dmk + kk + dmk + '=' + dm + query[ff][kk] + dm + ' and ';//formatas?
-		    }
-
-		}else{
-		    var dm = dmfig(query[ff]);
-
-		    wreq += ff + '=' + formatas(query[ff], schema.fields[ff].type, dm) + ' and ';
-		}
-	    }
-
-	    // xattr reads
-	    else{
-		
-		var dmk = dmfig(ff);
-		var dm = dmfig(query[ff]);
-
-		wreq += schemaName + '_xattrs->>' + dmk + ff + dmk + '=' + dm + query[ff] + dm + ' and '
-
-	    }
-	}
 	
-	wreq = wreq.substr(0, wreq.length-4);
-	if(wreq === ' wh') wreq = '';
+	var wreq = fmtwhere(schemaName, query);
 
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
@@ -485,7 +311,7 @@ module.exports = function(pg, conop, schemas){
 
 				    for(var i=oldrows.length; i-->0;){
 					(function(d){
-					    db.insert(sn, d, {}, function(err, ires){
+					    pg.insert(sn, d, {}, function(err, ires){
 						if(err){
 						    errs.push({err:err});
 						    console.log(err);
@@ -510,89 +336,181 @@ module.exports = function(pg, conop, schemas){
     };
 
     return pg;
+
+
+function fmtwhere(schemaName, query){
+
+    var schema = schemas.db[schemaName];
+
+    var wreq = ' where ';
+
+    for(var ff in query){
+	if(ff in schema.fields){
+
+	    if(typeof query[ff] === 'object'){
+
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+// THIS IS WHERE TO PUT OPERATOR DYNAMIC (ie range/regexp queries)
+//-----------------------------------------------------------------------------------------
+//
+// if query[ff] is object, if the field name starts with $ -> implement mongo type query
+//
+//-----------------------------------------------------------------------------------------
+// if this is a simple depth read case:
+// (this is where to put recursive depth reading)
+// this currently only supports tring depth reads.
+
+		for(var kk in query[ff]){
+		    
+		    var dmk = dmfig(kk);
+		    var dm = dmfig(query[ff][kk]);
+		    wreq += ff + '->>' + dmk + kk + dmk + '=' + dm + query[ff][kk] + dm + ' and ';//formatas?
+		}
+
+	    }else{
+		var dm = dmfig(query[ff]);
+		wreq += ff + '=' + formatas(query[ff], schema.fields[ff].type, dm) + ' and ';
+	    }
+	}
+
+	else if(ff === schemaName+'_hash'){
+		var dm = dmfig(query[ff]);
+	    wreq += ff + '=' + formatas(query[ff], 'varchar(31)', dm) + ' and ';
+	}
+
+	// xattr reads
+	else{
+	    
+	    var dmk = dmfig(ff);
+	    var dm = dmfig(query[ff]);
+
+	    wreq += schemaName + '_xattrs->>' + dmk + ff + dmk + '=' + dm + query[ff] + dm + ' and '
+
+	}
+    }
+    
+    wreq = wreq.substr(0, wreq.length-4);
+    if(wreq === ' wh') wreq = '';
+
+    return wreq;
 }
 
+function dmfig(s){
+    // determine the first delimiter of style $N$ which isnt present
+    var n=0;
+    var S = JSON.stringify(s);
+    var ns = btoa(''+((n-n%100)/100)+''+((n%100-n%10)/10)+''+n%10);
 
+    while( (new RegExp('$'+ns+'$')).test(S) ){
+	++n;
+	ns = btoa(''+((n-n%100)/100)+''+((n%100-n%10)/10)+''+n%10);
+    }
+    return '$'+ns+'$';
+}
 
+function fmtret(rop){
+    var rreq = '*';
+    if(rop){
+	if(typeof rop === 'string'){
+	    rreq = rop;
+	}else if(rop.constructor == Array){
+	    rreq = '(';
+	    for(var i=0; i<rop.length; i++) rreq += rop[i] +',';
+	    rreq = rreq.substr(0, rreq.length-1);
+	    rreq += ')';
+	}
+    }
+    return rreq;
+}
 
-// from .insert
+function formatas(data, type, dm, old){
+    // data is the data object, style is which type of query
 
-/*
-		//string
-		if(schema.fields[ff].type.indexOf('varchar')>-1){
-		    //if empty string put null
-		    if((typeof query[ff] === 'undefined')||
-		       ((JSON.stringify(query[ff]) === 'null')&&(query[ff] !== 'null'))){
-			valreq += 'null,';
-			continue;
-		    }else if(!query[ff].length){
-			valreq += 'null,';
-			continue;
-		    }
+    var ret = '';
 
-		    if(schema.fields[ff].type.indexOf('[')===-1){
-			valreq += dm + query[ff] + dm + ',';
-		    }
+    //string
+    if(type.indexOf('varchar') !== -1){ // grab varchar \d+ length and truncate?
+	//if empty string put null
+	if((typeof data === 'undefined')||((JSON.stringify(data) === 'null')&&(data !== 'null'))) return 'null';
+	else if(!data.length) return 'null';
 
-		    //array
-		    else{
-			if(!query[ff].length){
-			    valreq += 'ARRAY[]::'+schema.fields[ff].type+',';
-			}else{
-			    valreq += 'ARRAY[';
-			    for(var i=query[ff].length; i-->0;) valreq += dm + query[ff][i] + dm + ',';
-			    valreq = valreq.substr(0, valreq.length-1);
-			    valreq += '],';
-			}
-		    }
+	if(type.indexOf('[')===-1) return (dm + data + dm);
+
+	//array
+	else{
+	    if(!data.length) return ('ARRAY[]::'+schema.fields[ff].type);
+	    else{
+		ret += 'ARRAY[';
+		for(var i=data.length; i-->0;) ret += dm + data[i] + dm + ',';
+		ret = ret.substr(0, ret.length-1);
+		ret += ']';
+		
+		return ret;
+	    }
+	}
+    }
+
+    //timestamp
+    else if(type === 'timestamp'){
+	if(data === 'now()') return (dm + (new Date()).toISOString() + dm);
+	else return (dm + (new Date(query[ff])).toISOString() + dm);
+    }
+
+    //json
+    else if(type.indexOf('json') !== -1){
+	//XOVR old with data, then write
+	if(typeof old !== 'undefined'){
+	    if(old.constructor == Object){
+		for(var ff in data) old[ff] = data[ff];
+		data = old;
+	    }else if(old.constructor == Array){
+		for(var i=0; i<data.length; i++){
+		    if(!old[i]) old[i] = {};
+		    for(var ff in data[i]) old[i][ff] = data[i][ff];
 		}
+		data = old;
+	    }
+	}
 
-		//timestamp
-		else if(schema.fields[ff].type === 'timestamp'){
-		    if(query[ff] === 'now()') valreq += dm + (new Date()).toISOString() + dm + ',';
-		    else valreq += dm + (new Date(query[ff])).toISOString() + dm + ',';
-		}
+	if(type.indexOf('[') === -1) return (dm + JSON.stringify(data) + dm + '::json');
 
-		//json
-		else if(schema.fields[ff].type.indexOf('json')>-1){
-		    if(schema.fields[ff].type.indexOf('[')===-1){
-			valreq += dm + JSON.stringify(query[ff]) + dm + '::json,';	
-		    }
+	//array
+	else{
+	    if(!data) return 'ARRAY[]::json[]';
+	    else if(!data.length) return 'ARRAY[]::json[]';
+	    else{
+		ret += 'ARRAY[';
+		for(var i=data.length; i-->0;)
+		    ret += dm + JSON.stringify(data[i]) + dm + '::json,';
+		ret = ret.substr(0, ret.length-1);
+		ret += ']';
 
-		    //array
-		    else{
-			if(!query[ff]){
-			    valreq += 'ARRAY[]::json[],';
-			}else if(!query[ff].length){
-			    valreq += 'ARRAY[]::json[],';
-			}else{
-			    valreq += 'ARRAY[';
-			    for(var i=query[ff].length; i-->0;)
-				valreq += dm + JSON.stringify(query[ff][i]) + dm + '::json,';
-			    valreq = valreq.substr(0, valreq.length-1);
-			    valreq += '],';
-			}
-		    }
-		}
+		return ret;
+	    }
+	}
+    }
 
-		// int/bool
-		else{
-		    if(schema.fields[ff].type.indexOf('[')===-1){
-			valreq += '' + query[ff] + ',';
-		    }
+    // int/bool
+    else{
+	if(type.indexOf('[') === -1) return ('' + data);
 
-		    //array
-		    else{
-			if(!query[ff]){
-			    valreq += 'ARRAY[]::'+schema.fields[ff].type+',';
-			}else if(!query[ff].length){
-			    valreq += 'null,';
-			}else{
-			    valreq += 'ARRAY[';
-			    for(var i=query[ff].length; i-->0;) valreq += query[ff][i] + ',';
-			    valreq = valreq.substr(0, valreq.length-1);
-			    valreq += '],';
-			}
-		    }
-		}
-*/
+	//array
+	else{
+	    if(!data) return ('ARRAY[]::'+type);
+	    else if(!data.length) return 'null';
+	    else{
+		ret += 'ARRAY[';
+		for(var i=data.length; i-->0;) ret += data[i] + ',';
+		ret = ret.substr(0, ret.length-1);
+		ret += ']';
+		
+		return ret;
+	    }
+	}
+    }
+
+
+}
+
+}

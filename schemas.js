@@ -1,5 +1,5 @@
 module.exports = {
-    // write these up for use by pgboot and authM
+// these shouldn't be user accessable. they are built into the system
     defaultFields:{
 	hash:{
 	    type:'varchar(31)',
@@ -9,7 +9,6 @@ module.exports = {
 	    type:'json',
 	    permissions:''
 	}
-
     },
     db:{
 	word:{
@@ -182,12 +181,12 @@ module.exports = {
 		    required:true
 		},
 		verbconj:{
-		    type:'json[]',
+		    type:'json',
 		    permissions:'',
 		    required:true
 		},
 		otherconj:{
-		    type:'json[]',
+		    type:'json',
 		    permissions:'',
 		    required:true
 		},
