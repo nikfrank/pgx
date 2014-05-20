@@ -21,7 +21,7 @@ module.exports = {
 		    type:'serial primary key',
 		    permissions:''
 		},
-		lang:{
+		lang_hash:{
 		    type:'varchar(31)',
 		    permissions:'',
 		    jointype:'lang',
@@ -40,7 +40,7 @@ module.exports = {
 		    type:'varchar(63)',
 		    permissions:''
 		},
-		conjrule:{
+		rule_hash:{
 		    type:'varchar(31)',
 		    permissions:'',
 		    jointype:'rule'
@@ -112,7 +112,7 @@ module.exports = {
 		    defval:'',
 		    required:true
 		},
-		lang:{
+		lang_hash:{
 		    type:'varchar(63)',
 		    permissions:'',
 		    jointype:'lang',
@@ -139,9 +139,13 @@ module.exports = {
 		    permissions:''
 		},
 		exps:{
-		    type:'json[]',
+		    type:'varchar(31)[]',
 		    permissions:'',
 		    jointype:'rule'
+		},
+		exp_match:{
+		    type:'varchar(31)',
+		    permissions:''
 		},
 		created:{
 		    type:'timestamp',

@@ -104,7 +104,7 @@ module.exports = function(pg, conop, schemas){
 	var query = input.data;
 
 	var wreq = fmtwhere(schemaName, where);
-	
+	if(wreq === '') return callback({err:'no where clause available'});
 
 	var urreq = '*';
 	// loop through query and where to grab only fields requested
@@ -168,7 +168,6 @@ module.exports = function(pg, conop, schemas){
 		qreq = qreq.substr(0, qreq.length-1);
 
 		var rreq = fmtret(options.returning);
-
 		var treq = qreq + wreq + ' returning '+rreq+';';
 
 		client.query(treq, function(ierr, ires){
@@ -202,13 +201,10 @@ module.exports = function(pg, conop, schemas){
 //-----------------------------------------------------------------------------------------
 
 	if(typeof schemaNameOrNames === 'string') schemaName = schemaNameOrNames;
-
 	var schema = schemas.db[schemaName];
 
 	var rreq = fmtret(options.returning); // which columns to select
-
 	var qreq = 'select '+rreq+' from '+schema.tableName;
-	
 	var wreq = fmtwhere(schemaName, query);
 
 //-----------------------------------------------------------------------------------------
@@ -218,7 +214,7 @@ module.exports = function(pg, conop, schemas){
 //-----------------------------------------------------------------------------------------
 	var oreq = '';
 
-	var treq = qreq + wreq + ';';
+	var treq = qreq + wreq + oreq + ';';
 
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return res.json({err:err});
@@ -227,18 +223,15 @@ module.exports = function(pg, conop, schemas){
 		done();
 
 		//loop unpack xattrs
-		for(var i=result.rows.length; i-->0;){
+		for(var i=(result.rows||[]).length; i-->0;){
 		    if(!(schemaName+'_xattrs' in result.rows[i])) continue;
-		    for(var ff in result.rows[i][schemaName+'_xattrs']){
+		    for(var ff in result.rows[i][schemaName+'_xattrs'])
 			result.rows[i][ff] = result.rows[i][schemaName+'_xattrs'][ff];
-		    }
 		    delete result.rows[i][schemaName+'_xattrs'];
 		}
 		return callback(err, (result||{rows:[]}).rows);
 	    });
-
 	});
-	
     };
 
 
@@ -454,7 +447,10 @@ function formatas(data, type, dm, old){
     //timestamp
     else if(type === 'timestamp'){
 	if(data === 'now()') return (dm + (new Date()).toISOString() + dm);
-	else return (dm + (new Date(query[ff])).toISOString() + dm);
+	else{
+	    console.log((dm + (new Date(data[ff])).toISOString() + dm));
+	    return (dm + (new Date(data[ff])).toISOString() + dm);
+	}
     }
 
     //json
