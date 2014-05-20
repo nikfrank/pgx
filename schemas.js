@@ -4,7 +4,12 @@ module.exports = {
 	hash:{
 	    type:'varchar(31)',
 	    permissions:''
+	},
+	xattrs:{
+	    type:'json',
+	    permissions:''
 	}
+
     },
     db:{
 	word:{
@@ -18,9 +23,9 @@ module.exports = {
 		    permissions:''
 		},
 		lang:{
-		    type:'varchar(63)',
+		    type:'varchar(31)',
 		    permissions:'',
-		    defval:'',
+		    jointype:'lang',
 		    required:true
 		},
 		type:{
@@ -37,14 +42,13 @@ module.exports = {
 		    permissions:''
 		},
 		conjrule:{
-		    type:'varchar(63)',
+		    type:'varchar(31)',
 		    permissions:'',
 		    jointype:'rule'
 		},
 		conjexp:{
 		    type:'json',
-		    permissions:'',
-		    jointype:'rule'
+		    permissions:''
 		},
 		transform_exp:{
 		    type:'json[]',
@@ -112,7 +116,7 @@ module.exports = {
 		lang:{
 		    type:'varchar(63)',
 		    permissions:'',
-		    defval:'',
+		    jointype:'lang',
 		    required:true
 		},
 		type:{
@@ -170,43 +174,37 @@ module.exports = {
 		name:{
 		    type:'varchar(63)',
 		    permissions:'',
-		    defval:'',
 		    required:true
 		},
 		tag:{
 		    type:'varchar(7)',
 		    permissions:'',
-		    defval:'',
 		    required:true
 		},
 		verbconj:{
 		    type:'json[]',
 		    permissions:'',
-		    defval:'',
 		    required:true
 		},
 		otherconj:{
 		    type:'json[]',
 		    permissions:'',
-		    defval:'',
 		    required:true
 		},
 		alphabet:{
 		    type:'json',
 		    permissions:'',
-		    defval:'',
 		    required:true
 		},
 		transliteration:{
 		    type:'json',
 		    permissions:'',
-		    defval:'',
 		    required:true
 		},
 		textdir:{
 		    type:'varchar(3)',
 		    permissions:'',
-		    defval:'',
+		    defval:'ltr',
 		    required:true
 		}
 	    }

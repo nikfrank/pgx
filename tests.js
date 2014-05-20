@@ -8,16 +8,7 @@ var conop = config.conop;
 var schemas = require('./schemas');
 
 var pg = require('pg');
-var pgx = require('./pgwrap')(pg, config.conop, schemas);
-
-describe('Array', function(){
-  describe('#indexOf()', function(){
-    it('should return -1 when the value is not present', function(){
-      assert.equal(-1, [1,2,3].indexOf(5));
-      assert.equal(-1, [1,2,3].indexOf(0));
-    });
-  });
-});
+var pgx = require('./pgx')(pg, config.conop, schemas);
 
 describe('pgx', function(){
     describe('connect()', function(){
@@ -25,7 +16,7 @@ describe('pgx', function(){
 	    
 	    pgx.connect(conop, function(err, client, disconnect) {
 		disconnect();
-		finish(err);
+		done(err);
 	    });
 
 	});
@@ -43,57 +34,148 @@ describe('pgx', function(){
     });
 
     describe('insert(stringOnly:true)', function(){
-	it('should make a properly formatted insert string', function(){
+	it('should make a properly formatted insert string', function(done){
 	    
-	    var doc = {};
-	    var ops = {};
+	    var doc = {"rule":
+		       {"name":"פעל","lang":"iw","type":"v","grp":"פעל",
+			"conj":{"inf":"ל12ו3",
+				"past":{
+				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
+				    "mp":["","",""],"np":["","",""],"fp":["","",""]
+				},
+				"present":{
+				    "ms":["","","1ו23"],"ns":["","",""],"fs":["","","1ו23ת"],
+				    "mp":["","","1ו23ים"],"np":["","",""],"fp":["","","1ו23ות"]
+				},
+				"future":{
+				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
+				    "mp":["","",""],"np":["","",""],"fp":["","",""]
+				},
+				"imperative":{
+				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
+				    "mp":["","",""],"np":["","",""],"fp":["","",""]
+				}
+			       },
+			"hasconj":{
+			    "inf":true,
+			    "past":{
+				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
+				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
+			    },
+			    "present":{
+				"ms":[false,false,true],"ns":[false,false,false],
+				"fs":[false,false,true],"mp":[false,false,true],
+				"np":[false,false,false],"fp":[false,false,true]
+			    },
+			    "future":{
+				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
+				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
+			    },
+			    "imperative":{
+				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
+				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
+			    }
+			},"transform":[],"exps":[]
+		       }
+		      };
 
-	    pgx.insert('rule', doc, ops, function(err, res){
-		//
+	    var ops = {stringOnly:true};
+
+	    pgx.insert('rule', doc.rule, ops, function(err, ruleS){
+//actually check the string
+		done(err);
 	    });
 
 	});
     });
 
     describe('insert()', function(){
-	it('should return the inserted document', function(){
-	    
-	    var doc = {};
+	it('should return the inserted document', function(done){
+
+	    var doc = {"rule":
+		       {"name":"פעל","lang":"iw","type":"v","grp":"פעל",
+			"conj":{"inf":"ל12ו3",
+				"past":{
+				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
+				    "mp":["","",""],"np":["","",""],"fp":["","",""]
+				},
+				"present":{
+				    "ms":["","","1ו23"],"ns":["","",""],"fs":["","","1ו23ת"],
+				    "mp":["","","1ו23ים"],"np":["","",""],"fp":["","","1ו23ות"]
+				},
+				"future":{
+				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
+				    "mp":["","",""],"np":["","",""],"fp":["","",""]
+				},
+				"imperative":{
+				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
+				    "mp":["","",""],"np":["","",""],"fp":["","",""]
+				}
+			       },
+			"hasconj":{
+			    "inf":true,
+			    "past":{
+				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
+				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
+			    },
+			    "present":{
+				"ms":[false,false,true],"ns":[false,false,false],
+				"fs":[false,false,true],"mp":[false,false,true],
+				"np":[false,false,false],"fp":[false,false,true]
+			    },
+			    "future":{
+				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
+				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
+			    },
+			    "imperative":{
+				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
+				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
+			    }
+			},"transform":[],"exps":[]
+		       }
+		      };	    
+
 	    var ops = {};
 
-	    pgx.insert('rule', doc, ops, function(err, res){
-		//
+	    pgx.insert('rule', doc.rule, ops, function(err, res){
+		done(err);
 	    });
 
 	});
     });
 
     describe('read(stringOnly:true)', function(){
-	it('should make a properly formatted insert string', function(){
-	    //
+	it('should make a properly formatted insert string', function(done){
+	    
+	    pgx.read('rule', {lang:'iw',type:'v'}, {stringOnly:true}, function(err, ruleS){
+		console.log(ruleS);
+//actually check the string
+		done(err);
+	    });
+
 	});
     });
 
     describe('read()', function(){
-	it('should read a bunch of docs from the db', function(){
+	it.skip('should read a bunch of docs from the db', function(){
 	    //
 	});
     });
 
     describe('read({field:"val"})', function(){
-	it('should find docs matching the field', function(){
+	it.skip('should find docs matching the field', function(){
 	    //
 	});
     });
 
     describe('read({jsonfield:{"key":"val"}})', function(){
-	it('should find docs matching the json->> subfield', function(){
+	it.skip('should find docs matching the json->> subfield', function(){
 	    //
 	});
     });
 
     describe('read({xfield:"val"})', function(){
-	it('should find docs matching an xattr field', function(){
+	it.skip('should find docs matching an xattr field', function(){
 	    //
 	});
     });

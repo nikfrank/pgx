@@ -40,7 +40,7 @@ var formatas = function(data, type, dm, old){
 	if((typeof data === 'undefined')||((JSON.stringify(data) === 'null')&&(data !== 'null'))) return 'null';
 	else if(!data.length) return 'null';
 
-	if(type.indexOf('[')===-1) return (dm + query[ff] + dm);
+	if(type.indexOf('[')===-1) return (dm + data + dm);
 
 	//array
 	else{
@@ -130,18 +130,19 @@ module.exports = function(pg, conop, schemas){
 	var qreq = 'insert into '+schema.tableName+' (';
 	var valreq = ') values (';
 
-	if(!('hash' in query)){
+	if(!((schemaName+'_hash') in query)){
 	    // make up a hash
             var hmac = crypto.createHmac("sha1", "the toronto maple leafs are garbage"); 
             var hash2 = hmac.update(''+((new Date()).getTime())+''+Math.random());
             var digest = hmac.digest(encoding="base64");
 
-	    query.hash = digest;//28chars good enough
+	    query[schemaName+'_hash'] = digest;//28chars good enough
 	}
 
 	// build the insert statement
 	for(var ff in schema.fields){
 	    if(ff === schemaName+'_xattrs') continue;
+	    if(ff === schemaName+'_hash') continue;
 	    if(!(ff in query)) if('defval' in schema.fields[ff]) query[ff] = schema.fields[ff].defval;
 
 	    if(ff in query){
@@ -157,6 +158,7 @@ module.exports = function(pg, conop, schemas){
 	var xat = query[schemaName+'_xattrs']||{};
 	for(var ff in query){
 	    if(ff === schemaName+'_xattrs') continue;
+	    if(ff === schemaName+'_hash') continue;
 	    if(!(ff in schema.fields)) xat[ff] = query[ff];
 	}
 	if(JSON.stringify(xat).length>2){
@@ -164,6 +166,14 @@ module.exports = function(pg, conop, schemas){
 	    var dm = dmfig(xat);
 	    valreq += dm + JSON.stringify(xat) + dm +'::json,';
 	}
+
+	// hash field
+	// these default fields shouldn't be using magic code like this
+
+	qreq += schemaName+'_hash,';
+	var dm = dmfig(query[schemaName+'_hash']);
+	valreq += dm + query[schemaName+'_hash'] + dm +',';
+	
 
 	if(qreq.length === 21) return callback({err:'nodata'});
 
@@ -174,16 +184,15 @@ module.exports = function(pg, conop, schemas){
 
 	var treq = qreq + valreq + ') returning '+rreq+';';
 
-	if(options.stringOnly) return treq;
+	if(options.stringOnly) return callback(undefined, treq);
 
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return res.json({connection_err:err});
 
 	    client.query(treq, function(ierr, ires){
-		if(ierr) return res.json({ierr:ierr});
 
 		done();
-		return callback(ierr, ires);
+		return callback(ierr, (result||{}).rows);
 	    });
 	});
     };
@@ -199,7 +208,7 @@ module.exports = function(pg, conop, schemas){
 
 	// loop over queryArray, adding values () blocks for each one
 
-    });
+    };
 
 
     pg.update = function(schemaName, input, options, callback){
@@ -298,7 +307,7 @@ module.exports = function(pg, conop, schemas){
 		    if(ierr) return res.json({ierr:ierr});
 
 		    done();
-		    return callback(ierr, ires);
+		    return callback(ierr, (ires||{}).rows);
 		});
 	    });
 	});

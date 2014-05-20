@@ -30,6 +30,8 @@ db.insert(schemaNameOrNames, queryParams, options, callback(err,data))
 
 in addition to the original pg.connect -> client -> query -> ... routine
 
++ stringOnly option
+
 ** check these siggies. I'm doing this from memory **
 
 ** also document the options in each one **
