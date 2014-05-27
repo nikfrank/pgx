@@ -51,12 +51,14 @@ module.exports = function(pg, conop, schemas){
 	}
 
 	// hash field
-	// these default fields shouldn't be using magic code like this
+// these default fields shouldn't be using magic code like this
+// these default fields shouldn't be using magic code like this
+// these default fields shouldn't be using magic code like this
+// these default fields shouldn't be using magic code like this
 
 	qreq += schemaName+'_hash,';
 	var dm = dmfig(query[schemaName+'_hash']);
 	valreq += dm + query[schemaName+'_hash'] + dm +',';
-	
 
 	if(qreq.length === 21) return callback({err:'nodata'});
 
@@ -73,7 +75,6 @@ module.exports = function(pg, conop, schemas){
 	    if(err) return res.json({connection_err:err});
 
 	    client.query(treq, function(ierr, ires){
-
 		done();
 		return callback(ierr, (ires||{rows:[]}).rows[0]);
 	    });
@@ -140,14 +141,12 @@ module.exports = function(pg, conop, schemas){
 		    if(!(ff in schema.fields)) continue;
 		    qreq += ff + '=';
 		    var dm = dmfig(query[ff]);
-
 		    var old;
 
 //document options.xorjson
 		    if(schema.fields[ff].type.indexOf('json')>-1) if(options.xorjson) old = doc[ff];
 
 		    qreq += formatas(query[ff], schema.fields[ff].type, dm, old) + ',';
-
 		}
 
 		//put the other fields of query into xattrs if any
@@ -163,7 +162,6 @@ module.exports = function(pg, conop, schemas){
 		}
 
 		if(qreq.length === 21) return callback({err:'nodata'});
-// do a similar check for where stmt
 
 		qreq = qreq.substr(0, qreq.length-1);
 
@@ -171,7 +169,6 @@ module.exports = function(pg, conop, schemas){
 		var treq = qreq + wreq + ' returning '+rreq+';';
 
 		client.query(treq, function(ierr, ires){
-
 		    var ep;
 		    if(ierr) ep = {err:ierr, stmt:treq};
 
@@ -181,7 +178,6 @@ module.exports = function(pg, conop, schemas){
 	    });
 	});
     };
-
 
 
     pg.read = function(schemaNameOrNames, query, options, callback){
@@ -235,25 +231,27 @@ module.exports = function(pg, conop, schemas){
     };
 
 
-    pg.schemaVerify = function(){
+    pg.erase = function(schemaNameOrNames, query, options, callback){
+	// if options.deleteLinked -> delete all joinable records
+	// else, simply erase those records fields
+    };
 
+
+    pg.schemaVerify = function(){
 	// make sure there aren't any fields called 'group' or 'user' or starts with $
 	// make sure all jointypes exist
+	// make sure there's a primary serial key
 	
     };
 
 
-
     pg.boot = function(options, callback, errcallback){
-
 	if(!errcallback) errcallback = callback;
 
-// this needs option for not porting data
-// and a check for isNewTable?
+	// if is newtable, leave throwSelect and throwDrop false to not hack a chinak about it
+	// maybe this should be an option to list new tables or renamed tables
 
-// maybe later a check for column rename (or simply an option)
-
-// run a schema verify to check that the names are valid, there's a primary serial key, etc
+	// option for column rename options.renames = {oldname:'newname',..}
 
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return errcallback({err:err});
@@ -265,9 +263,7 @@ module.exports = function(pg, conop, schemas){
 	    var errs = [];
 	    
 	    for(var tt in schemas.db){
-		
 		(function(sn){// sn === tt
-
 		    var sc = schemas.db[sn];
 
 		    client.query('select * from '+sc.tableName, function(selerr, oldrowres) {
@@ -276,6 +272,7 @@ module.exports = function(pg, conop, schemas){
 			    if(drerr && options.throwDrop) errcallback({drop_err:drerr});
 			    
 			    var oldrows = (oldrowres||{rows:[]}).rows;
+			    if(options.empty) oldrows = [];
 			    
 			    var qq = 'create table if not exists '+sc.tableName+' (';
 			    for(var ff in sc.fields){
@@ -301,7 +298,6 @@ module.exports = function(pg, conop, schemas){
 					if(errs.length) return errcallback({errs:errs});
 					return callback({db:schemas.db});
 				    }
-
 				    for(var i=oldrows.length; i-->0;){
 					(function(d){
 					    pg.insert(sn, d, {}, function(err, ires){
@@ -330,18 +326,14 @@ module.exports = function(pg, conop, schemas){
 
     return pg;
 
-
 function fmtwhere(schemaName, query){
 
     var schema = schemas.db[schemaName];
-
     var wreq = ' where ';
 
     for(var ff in query){
 	if(ff in schema.fields){
-
 	    if(typeof query[ff] === 'object'){
-
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 // THIS IS WHERE TO PUT OPERATOR DYNAMIC (ie range/regexp queries)
@@ -360,31 +352,26 @@ function fmtwhere(schemaName, query){
 		    var dm = dmfig(query[ff][kk]);
 		    wreq += ff + '->>' + dmk + kk + dmk + '=' + dm + query[ff][kk] + dm + ' and ';//formatas?
 		}
-
 	    }else{
 		var dm = dmfig(query[ff]);
 		wreq += ff + '=' + formatas(query[ff], schema.fields[ff].type, dm) + ' and ';
 	    }
 	}
-
 	else if(ff === schemaName+'_hash'){
 		var dm = dmfig(query[ff]);
 	    wreq += ff + '=' + formatas(query[ff], 'varchar(31)', dm) + ' and ';
 	}
-
 	// xattr reads
-	else{
-	    
+	else{   
 	    var dmk = dmfig(ff);
 	    var dm = dmfig(query[ff]);
 
 	    wreq += schemaName + '_xattrs->>' + dmk + ff + dmk + '=' + dm + query[ff] + dm + ' and '
-
 	}
     }
     
     wreq = wreq.substr(0, wreq.length-4);
-    if(wreq === ' wh') wreq = '';
+    if(wreq.length < 11) wreq = '';// ' where a=1 ' is the shortest possible where clause
 
     return wreq;
 }
@@ -418,8 +405,6 @@ function fmtret(rop){
 }
 
 function formatas(data, type, dm, old){
-    // data is the data object, style is which type of query
-
     var ret = '';
 
     //string
@@ -443,7 +428,6 @@ function formatas(data, type, dm, old){
 	    }
 	}
     }
-
     //timestamp
     else if(type === 'timestamp'){
 	if(data === 'now()') return (dm + (new Date()).toISOString() + dm);
@@ -452,7 +436,6 @@ function formatas(data, type, dm, old){
 	    return (dm + (new Date(data[ff])).toISOString() + dm);
 	}
     }
-
     //json
     else if(type.indexOf('json') !== -1){
 	//XOVR old with data, then write
@@ -470,7 +453,6 @@ function formatas(data, type, dm, old){
 	}
 
 	if(type.indexOf('[') === -1) return (dm + JSON.stringify(data) + dm + '::json');
-
 	//array
 	else{
 	    if(!data) return 'ARRAY[]::json[]';
@@ -486,11 +468,9 @@ function formatas(data, type, dm, old){
 	    }
 	}
     }
-
     // int/bool
     else{
 	if(type.indexOf('[') === -1) return ('' + data);
-
 	//array
 	else{
 	    if(!data) return ('ARRAY[]::'+type);
@@ -505,8 +485,6 @@ function formatas(data, type, dm, old){
 	    }
 	}
     }
-
-
 }
 
 }

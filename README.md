@@ -60,7 +60,33 @@ insertBatch (array of inserted objects)
 emptydb
 dropalltables
 
-write some tests
+write some tests::
+
+
+empty boot db
+
+insert some records
+
+read those records
+
+update the records
+
+((use charlatan to make some fake data))
+
+((batch insert some records))
+
+json-depth read
+
+((join read))
+
+((limit & sorted reads))
+
+((erase some records))
+
+((verifySchema))
+
+----------------
+
 
 fill in the docs
 
