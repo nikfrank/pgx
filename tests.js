@@ -10,75 +10,88 @@ var schemas = require('./schemas');
 var pg = require('pg');
 var pgx = require('./pgx')(pg, config.conop, schemas);
 
+
+var palrule = {"rule":
+	       {"name":"פעל","lang":"iw","type":"v","grp":"פעל",
+		"conj":{"inf":"ל12ו3",
+			"past":{
+			    "ms":["","",""],"ns":["","",""],"fs":["","",""],
+			    "mp":["","",""],"np":["","",""],"fp":["","",""]
+			},
+			"present":{
+			    "ms":["","","1ו23"],"ns":["","",""],"fs":["","","1ו23ת"],
+			    "mp":["","","1ו23ים"],"np":["","",""],"fp":["","","1ו23ות"]
+			},
+			"future":{
+			    "ms":["","",""],"ns":["","",""],"fs":["","",""],
+			    "mp":["","",""],"np":["","",""],"fp":["","",""]
+			},
+			"imperative":{
+			    "ms":["","",""],"ns":["","",""],"fs":["","",""],
+			    "mp":["","",""],"np":["","",""],"fp":["","",""]
+			}
+		       },
+		"hasconj":{
+		    "inf":true,
+		    "past":{
+			"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
+			"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
+		    },
+		    "present":{
+			"ms":[false,false,true],"ns":[false,false,false],
+			"fs":[false,false,true],"mp":[false,false,true],
+			"np":[false,false,false],"fp":[false,false,true]
+		    },
+		    "future":{
+			"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
+			"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
+		    },
+		    "imperative":{
+			"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
+			"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
+		    }
+		},"transform":[],"exps":[]
+	       }
+	      };
+
+
+
 describe('pgx', function(){
+
+    before(function(done){
+	pgx.boot({empty:true}, function(res){
+	    //check res?
+	    done();
+	}, function(err){done(err);});
+    });
+
+// connection tests---------(dep)--------------------------------------------
     describe('connect()', function(){
-	it('should connect and not throw errors', function(done){
+	it.skip('should connect and not throw errors', function(done){
 	    pgx.connect(conop, function(err, client, disconnect) {
 		disconnect();
 		done(err);
 	    });
 	});
     });
-
     describe('boot(empty:true)', function(){
-	it('should boot and not throw errors', function(done){
+	it.skip('should boot and not throw errors', function(done){
 	    pgx.boot({empty:true}, function(){
 		done();
 	    }, function(err){done(err);});
 	});
     });
+//---------------------------------------------------------------------------
 
     describe('insert(stringOnly:true)', function(){
 	it('should make a properly formatted insert string', function(done){
 	    
-	    var doc = {"rule":
-		       {"name":"פעל","lang":"iw","type":"v","grp":"פעל",
-			"conj":{"inf":"ל12ו3",
-				"past":{
-				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
-				    "mp":["","",""],"np":["","",""],"fp":["","",""]
-				},
-				"present":{
-				    "ms":["","","1ו23"],"ns":["","",""],"fs":["","","1ו23ת"],
-				    "mp":["","","1ו23ים"],"np":["","",""],"fp":["","","1ו23ות"]
-				},
-				"future":{
-				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
-				    "mp":["","",""],"np":["","",""],"fp":["","",""]
-				},
-				"imperative":{
-				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
-				    "mp":["","",""],"np":["","",""],"fp":["","",""]
-				}
-			       },
-			"hasconj":{
-			    "inf":true,
-			    "past":{
-				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
-				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
-			    },
-			    "present":{
-				"ms":[false,false,true],"ns":[false,false,false],
-				"fs":[false,false,true],"mp":[false,false,true],
-				"np":[false,false,false],"fp":[false,false,true]
-			    },
-			    "future":{
-				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
-				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
-			    },
-			    "imperative":{
-				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
-				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
-			    }
-			},"transform":[],"exps":[]
-		       }
-		      };
-
+	    var doc = palrule;
 	    var ops = {stringOnly:true};
 
 	    pgx.insert('rule', doc.rule, ops, function(err, ruleS){
-//actually check the string
-		done(err);
+		//check the content of the string?
+		done(err||((typeof ruleS !== 'string')?'not a string':undefined));
 	    });
 
 	});
@@ -87,49 +100,7 @@ describe('pgx', function(){
     describe('insert()', function(){
 	it('should return the inserted document', function(done){
 
-	    var doc = {"rule":
-		       {"name":"פעל","lang":"iw","type":"v","grp":"פעל",
-			"conj":{"inf":"ל12ו3",
-				"past":{
-				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
-				    "mp":["","",""],"np":["","",""],"fp":["","",""]
-				},
-				"present":{
-				    "ms":["","","1ו23"],"ns":["","",""],"fs":["","","1ו23ת"],
-				    "mp":["","","1ו23ים"],"np":["","",""],"fp":["","","1ו23ות"]
-				},
-				"future":{
-				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
-				    "mp":["","",""],"np":["","",""],"fp":["","",""]
-				},
-				"imperative":{
-				    "ms":["","",""],"ns":["","",""],"fs":["","",""],
-				    "mp":["","",""],"np":["","",""],"fp":["","",""]
-				}
-			       },
-			"hasconj":{
-			    "inf":true,
-			    "past":{
-				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
-				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
-			    },
-			    "present":{
-				"ms":[false,false,true],"ns":[false,false,false],
-				"fs":[false,false,true],"mp":[false,false,true],
-				"np":[false,false,false],"fp":[false,false,true]
-			    },
-			    "future":{
-				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
-				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
-			    },
-			    "imperative":{
-				"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
-				"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
-			    }
-			},"transform":[],"exps":[]
-		       }
-		      };	    
-
+	    var doc = palrule;
 	    var ops = {};
 
 	    pgx.insert('rule', doc.rule, ops, function(err, res){
@@ -141,12 +112,11 @@ describe('pgx', function(){
     });
 
     describe('read(stringOnly:true)', function(){
-	it('should make a properly formatted insert string', function(done){
+	it('should make a properly formatted read string', function(done){
 	    
 	    pgx.read('rule', {lang:'iw',type:'v'}, {stringOnly:true}, function(err, ruleS){
-		console.log(ruleS);
-//actually check the string
-		done(err);
+		//check the content of the string?
+		done(err||((typeof ruleS !== 'string')?'not a string':undefined));
 	    });
 
 	});

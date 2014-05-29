@@ -46,6 +46,12 @@ in addition to the original pg.connect -> client -> query -> ... routine
 
 ** options.returning **
 
+"order by" type queries
+
+limit queries
+
+json depth filters (where json->'key'='val')
+
 todo
 
 document return types:
@@ -71,15 +77,13 @@ read those records
 
 update the records
 
-((use charlatan to make some fake data))
-
 ((batch insert some records))
 
 json-depth read
 
 ((join read))
 
-((limit & sorted reads))
+limit & sorted reads
 
 ((erase some records))
 
@@ -90,19 +94,13 @@ json-depth read
 
 fill in the docs
 
-json depth filters (where json->'key'='val')
-
 delete rows
 
 schema verify schema cannot have anything called "group" or "user" or starting with a $
 
-see if unpacking xattrs is possible from psql
+unpack xattrs from psql (this might change the way queries are done? or just return vals?)
 
 pg.emptyboot
-
-"order by" type queries
-
-limit queries
 
 range queries
 

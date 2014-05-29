@@ -72,7 +72,7 @@ module.exports = function(pg, conop, schemas){
 	if(options.stringOnly) return callback(undefined, treq);
 
 	pg.connect(conop, function(err, client, done) {
-	    if(err) return res.json({connection_err:err});
+	    if(err) return callback({connection_err:err});
 
 	    client.query(treq, function(ierr, ires){
 		done();
@@ -203,14 +203,35 @@ module.exports = function(pg, conop, schemas){
 	var qreq = 'select '+rreq+' from '+schema.tableName;
 	var wreq = fmtwhere(schemaName, query);
 
-//-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
-// THIS IS WHERE TO PUT SORTED BY, LIMITS
-//-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
 	var oreq = '';
 
+	if(typeof options.limit === 'number'){
+	    if(options.limit < 1) throw new Error('limit of '+options.limit+' less than one');
+	    oreq += ' limit '+options.limit;
+	    if(typeof options.offset === 'number'){
+		if(options.limit < 0) throw new Error('offset of 'options.offset+'less than zero');
+		oreq += ' offset '+options.offset;
+	    }else throw new Error('offset should be a number, not a '+(typeof options.offset));
+	}else throw new Error('limit should be a number, not a '+(typeof options.limit));
+
+	if(typeof options.orderby === 'object'){ if(options.orderby.constructor == Array){
+	    
+	    for(var ic=0; ic<options.orderby.length; ++ic){
+		var cc = options.orderby[ic];
+   //check that cc is in schema, otherwise use xattrs and only select where it exists?
+		oreq += ' '+cc.col+' '+cc.order+',';
+	    }
+	    oreq = oreq.substr(0,oreq.length-1);
+
+	}else if(options.orderby.constructor == Object){
+	    var cc = options.orderby;
+   //check that cc is in schema, otherwise use xattrs and only select where it exists?
+	    oreq += ' '+cc.col+' '+cc.order;
+	}}
+
 	var treq = qreq + wreq + oreq + ';';
+
+	if(options.stringOnly) return callback(undefined, treq);
 
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return res.json({err:err});
