@@ -13,50 +13,9 @@ var pgx = require('./pgx')(pg, config.conop, schemas);
 
 var teststatus = '';
 
-var palrule = {"rule":
-	       {"name":"פעל","lang":"iw","type":"v","grp":"פעל",
-		"conj":{"inf":"ל12ו3",
-			"past":{
-			    "ms":["","",""],"ns":["","",""],"fs":["","",""],
-			    "mp":["","",""],"np":["","",""],"fp":["","",""]
-			},
-			"present":{
-			    "ms":["","","1ו23"],"ns":["","",""],"fs":["","","1ו23ת"],
-			    "mp":["","","1ו23ים"],"np":["","",""],"fp":["","","1ו23ות"]
-			},
-			"future":{
-			    "ms":["","",""],"ns":["","",""],"fs":["","",""],
-			    "mp":["","",""],"np":["","",""],"fp":["","",""]
-			},
-			"imperative":{
-			    "ms":["","",""],"ns":["","",""],"fs":["","",""],
-			    "mp":["","",""],"np":["","",""],"fp":["","",""]
-			}
-		       },
-		"hasconj":{
-		    "inf":true,
-		    "past":{
-			"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
-			"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
-		    },
-		    "present":{
-			"ms":[false,false,true],"ns":[false,false,false],
-			"fs":[false,false,true],"mp":[false,false,true],
-			"np":[false,false,false],"fp":[false,false,true]
-		    },
-		    "future":{
-			"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
-			"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
-		    },
-		    "imperative":{
-			"ms":[true,true,true],"ns":[true,true,true],"fs":[true,true,true],
-			"mp":[true,true,true],"np":[true,true,true],"fp":[true,true,true]
-		    }
-		},"transform":[],"exps":[]
-	       }
-	      };
+// move the test json data to another file and require it
 
-
+var tdata = require('./testdata');
 
 describe('pgx', function(){
 
@@ -90,7 +49,7 @@ describe('pgx', function(){
 	describe('(stringOnly:true)', function(){
 	    it('should make a properly formatted insert string', function(done){
 		
-		var doc = palrule;
+		var doc = tdata.palrule;
 		var ops = {stringOnly:true};
 
 		pgx.insert('rule', doc.rule, ops, function(err, ruleS){
@@ -104,24 +63,44 @@ describe('pgx', function(){
 	describe('()', function(){
 	    it('should return the inserted document', function(done){
 
-		var doc = palrule;
+		var doc = tdata.palrule;
 		var ops = {};
 
 		pgx.insert('rule', doc.rule, ops, function(err, res){
 		    //check the res against the doc
 		    done(err);
 		});
+	    });
+	});
 
+	describe('(returning:whatever)', function(){
+	    it('should return the inserted document', function(done){
+
+		var doc = tdata.pielrule;
+		var ops = {returning:[]};// put something here
+
+		pgx.insert('rule', doc.rule, ops, function(err, res){
+		    //check the res against the doc
+		    done(err);
+		});
 	    });
 	});
 
 	describe('batch()', function(){
 	    it.skip('should batch insert records in the db', function(done){
-		//
+		// insert a bunch of words from the data file
+
+		var docs = tdata.testwords;
+		var ops = {};// put something here
+
+		pgx.batchInsert('word', docs, ops, function(err, res){
+		    //check the res against the doc
+		    done(err);
+		});
 	    });
 	});
 
-	after(function(){ teststatus = 'insert'; });
+	after(function(){ teststatus = 'insert'; console.log('inserts done');});
     });
 //---------------------------------------------------------------------------
 
@@ -132,6 +111,7 @@ describe('pgx', function(){
 	    var ii; ii = setInterval(function(){
 		if(teststatus === 'insert'){
 		    clearInterval(ii);
+		    console.log('reads started');
 		    done();
 		}
 	    }, 90);
@@ -208,7 +188,7 @@ describe('pgx', function(){
 	    });
 	});
 
-	after(function(){ teststatus = 'read'; });
+	after(function(){ teststatus = 'read'; console.log('reads done');});
 
     });
 //---------------------------------------------------------------------------
@@ -221,6 +201,7 @@ describe('pgx', function(){
 	    var ii; ii = setInterval(function(){
 		if(teststatus === 'read'){
 		    clearInterval(ii);
+		    console.log('updates started');
 		    done();
 		}
 	    }, 90);
@@ -233,12 +214,12 @@ describe('pgx', function(){
 	});
 
 	describe('()', function(){
-	    it.skip('should update a record in the db', function(done){
-		//
+	    it('should update a record in the db', function(done){
+		done();
 	    });
 	});
 
-	after(function(){ teststatus = 'update'; });
+	after(function(){ teststatus = 'update'; console.log('updates done');});
     });
 //---------------------------------------------------------------------------
 
@@ -249,6 +230,7 @@ describe('pgx', function(){
 	    var ii; ii = setInterval(function(){
 		if(teststatus === 'update'){
 		    clearInterval(ii);
+		    console.log('erasures started');
 		    done();
 		}
 	    }, 90);
@@ -260,7 +242,7 @@ describe('pgx', function(){
 	    });
 	});
 
-	after(function(){ teststatus = 'erase'; });
+	after(function(){ teststatus = 'erase'; console.log('erasures completed');});
 
     });
 //---------------------------------------------------------------------------

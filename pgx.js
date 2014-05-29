@@ -56,17 +56,20 @@ module.exports = function(pg, conop, schemas){
 // these default fields shouldn't be using magic code like this
 // these default fields shouldn't be using magic code like this
 
+// also, move all the valreq stuff earlier to omit the rest on valreq only reqs
+
 	qreq += schemaName+'_hash,';
 	var dm = dmfig(query[schemaName+'_hash']);
 	valreq += dm + query[schemaName+'_hash'] + dm +',';
 
 	if(qreq.length === 21) return callback({err:'nodata'});
 
-	qreq = qreq.substr(0, qreq.length-1);
-	valreq = valreq.substr(0, valreq.length-1);
+	qreq = qreq.slice(0,-1);
+	valreq = valreq.slice(0,-1);
+
+	if(options.valreqOnly) return callback(undefined, valreq.substr(9));
 
 	var rreq = fmtret(options.returning);
-
 	var treq = qreq + valreq + ') returning '+rreq+';';
 
 	if(options.stringOnly) return callback(undefined, treq);
@@ -89,8 +92,40 @@ module.exports = function(pg, conop, schemas){
 	var qreq = 'insert into '+schema.tableName+' (';
 	var valreq = ') values ';
 
+	var rreq = fmtret(options.returning);
+
+	var foroptions = options;
+	foroptions.valreqOnly = true;
+
+	var rem = queryArray.length;
+
+	var callDB = function(){
+	    var treq = qreq + valreq + ') returning '+rreq+';';
+
+	    if(options.stringOnly) return callback(undefined, treq);
+
+	    pg.connect(conop, function(err, client, done) {
+		if(err) return callback({connection_err:err});
+
+		client.query(treq, function(ierr, ires){
+		    done();
+		    return callback(ierr, (ires||{rows:[]}).rows[0]);
+		});
+	    }); 
+	}
+	
 
 	// loop over queryArray, adding values () blocks for each one
+	for(var i=0; i<queryArray.length; ++i){
+	    pg.insert(schemaName, queryArray[i], foroptions, function(err, str){
+		valreq += str + ',';
+		if(--rem){
+		    valreq = valreq.slice(0,-1);
+		    callDB();
+		}
+	    }
+	}
+
 
     };
 
@@ -163,7 +198,7 @@ module.exports = function(pg, conop, schemas){
 
 		if(qreq.length === 21) return callback({err:'nodata'});
 
-		qreq = qreq.substr(0, qreq.length-1);
+		qreq = qreq.slice(0,-1);
 
 		var rreq = fmtret(options.returning);
 		var treq = qreq + wreq + ' returning '+rreq+';';
@@ -229,7 +264,7 @@ module.exports = function(pg, conop, schemas){
    //check that cc is in schema, otherwise use xattrs and only select where it exists?
 		oreq += ' '+cc.col+' '+cc.order+',';
 	    }
-	    oreq = oreq.substr(0,oreq.length-1);
+	    oreq = oreq.slice(0,-1);
 
 	}else if(options.orderby.constructor == Object){
 	    var cc = options.orderby;
@@ -315,7 +350,7 @@ module.exports = function(pg, conop, schemas){
 			    for(var ff in schemas.defaultFields){
 				qq += sn+'_'+ff +' '+ schemas.defaultFields[ff].type+',';
 			    }
-			    qq = qq.substr(0,qq.length-1) + ');';
+			    qq = qq.slice(0,-1) + ');';
 
 			    // make the request
 			    (function(qu, oldrows){
@@ -404,7 +439,7 @@ function fmtwhere(schemaName, query){
 	}
     }
     
-    wreq = wreq.substr(0, wreq.length-4);
+    wreq = wreq.slice(0,-4);
     if(wreq.length < 11) wreq = '';// ' where a=1 ' is the shortest possible where clause
 
     return wreq;
@@ -431,7 +466,7 @@ function fmtret(rop){
 	}else if(rop.constructor == Array){
 	    rreq = '(';
 	    for(var i=0; i<rop.length; i++) rreq += rop[i] +',';
-	    rreq = rreq.substr(0, rreq.length-1);
+	    rreq = rreq.slice(0,-1);
 	    rreq += ')';
 	}
     }
@@ -455,7 +490,7 @@ function formatas(data, type, dm, old){
 	    else{
 		ret += 'ARRAY[';
 		for(var i=data.length; i-->0;) ret += dm + data[i] + dm + ',';
-		ret = ret.substr(0, ret.length-1);
+		ret = ret.slice(0,-1);
 		ret += ']';
 		
 		return ret;
@@ -495,7 +530,7 @@ function formatas(data, type, dm, old){
 		ret += 'ARRAY[';
 		for(var i=data.length; i-->0;)
 		    ret += dm + JSON.stringify(data[i]) + dm + '::json,';
-		ret = ret.substr(0, ret.length-1);
+		ret = ret.slice(0,-1);
 		ret += ']';
 
 		return ret;
@@ -512,7 +547,7 @@ function formatas(data, type, dm, old){
 	    else{
 		ret += 'ARRAY[';
 		for(var i=data.length; i-->0;) ret += data[i] + ',';
-		ret = ret.substr(0, ret.length-1);
+		ret = ret.slice(0,-1);
 		ret += ']';
 		
 		return ret;
