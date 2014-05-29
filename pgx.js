@@ -188,6 +188,10 @@ module.exports = function(pg, conop, schemas){
 //
 //  ['schema1','schema2'], {schema1:{query}, schema2:{query} }, {returning:{schema1:{r}, schema2:{r} } }
 //
+//  in the case there are multiple options for the join column based on the schema type
+//  or the join operator is not an equality
+//  an "on" clause must be specified in the options package
+//
 // if(typeof schemaNameOrNames === 'object')-> // array
 //
 //   determine the join column for these two schema (if none, error!)
@@ -209,10 +213,14 @@ module.exports = function(pg, conop, schemas){
 	    if(options.limit < 1) throw new Error('limit of '+options.limit+' less than one');
 	    oreq += ' limit '+options.limit;
 	    if(typeof options.offset === 'number'){
-		if(options.limit < 0) throw new Error('offset of 'options.offset+'less than zero');
+		if(options.limit < 0) throw new Error('offset of '+options.offset+'less than zero');
 		oreq += ' offset '+options.offset;
-	    }else throw new Error('offset should be a number, not a '+(typeof options.offset));
-	}else throw new Error('limit should be a number, not a '+(typeof options.limit));
+	    }else if(typeof options.offset !== 'undefined'){
+		throw new Error('offset should be a number, not a '+(typeof options.offset));
+	    }
+	}else if(typeof options.limit !== 'undefined'){
+	    throw new Error('limit should be a number, not a '+(typeof options.limit));
+	}
 
 	if(typeof options.orderby === 'object'){ if(options.orderby.constructor == Array){
 	    
@@ -253,8 +261,13 @@ module.exports = function(pg, conop, schemas){
 
 
     pg.erase = function(schemaNameOrNames, query, options, callback){
-	// if options.deleteLinked -> delete all joinable records
+	if(options.deleteLinked){
+	    //delete all autojoined records too
+	    return callback(undefined, undefined);
+	}
 	// else, simply erase those records fields
+	var ereq = '';
+
     };
 
 

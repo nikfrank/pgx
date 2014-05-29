@@ -100,8 +100,6 @@ schema verify schema cannot have anything called "group" or "user" or starting w
 
 unpack xattrs from psql (this might change the way queries are done? or just return vals?)
 
-pg.emptyboot
-
 range queries
 
 - regexps for strings
