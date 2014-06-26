@@ -86,6 +86,23 @@ describe('pgx', function(){
 	    });
 	});
 
+	describe('batch(stringOnly)', function(){
+	    it.skip('should batch insert records in the db', function(done){
+		// insert a bunch of words from the data file
+
+		var docs = tdata.testwords;
+		var ops = {stringOnly:true};// put something here
+
+		pgx.batchInsert('word', docs, ops, function(err, res){
+		    //check the res against a sql batch insert regexp
+		    
+console.log(res);
+
+		    done(err);
+		});
+	    });
+	});
+
 	describe('batch()', function(){
 	    it.skip('should batch insert records in the db', function(done){
 		// insert a bunch of words from the data file
