@@ -87,7 +87,7 @@ describe('pgx', function(){
 	});
 
 	describe('batch()', function(){
-	    it.skip('should batch insert records in the db', function(done){
+	    it('should batch insert records in the db', function(done){
 		// insert a bunch of words from the data file
 
 		var docs = tdata.testwords;
@@ -95,6 +95,8 @@ describe('pgx', function(){
 
 		pgx.batchInsert('word', docs, ops, function(err, res){
 		    //check the res against the doc
+console.log('res',res);
+console.log('err',err);
 		    done(err);
 		});
 	    });
@@ -256,11 +258,3 @@ describe('pgx', function(){
 //---------------------------------------------------------------------------
 });
 
-
-function gendoc(schema){
-    // generate a random doc from the schema... there might be a plugin for this
-
-    
-
-
-}

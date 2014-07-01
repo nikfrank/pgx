@@ -26,13 +26,12 @@ module.exports = function(pg, conop, schemas){
 	for(var ff in schema.fields){
 	    if(ff === schemaName+'_xattrs') continue;
 	    if(ff === schemaName+'_hash') continue;
-	    if(!(ff in query)) if('defval' in schema.fields[ff]) query[ff] = schema.fields[ff].defval;
+	    if(!(ff in query))
+		if('defval' in schema.fields[ff]) query[ff] = schema.fields[ff].defval;
 
 	    if(ff in query){
-		qreq += ff + ',';
-		
+		qreq += ff + ',';		
 		var dm = dmfig(query[ff]);
-
 		valreq += formatas(query[ff], schema.fields[ff].type, dm) + ',';
 	    }
 	}
@@ -67,7 +66,7 @@ module.exports = function(pg, conop, schemas){
 	qreq = qreq.slice(0,-1);
 	valreq = valreq.slice(0,-1);
 
-	if(options.valreqOnly) return callback(undefined, valreq.substr(9));
+	if(options.valreqOnly) return callback(undefined, {qreq:qreq, valreq:valreq.substr(9)});
 
 	var rreq = fmtret(options.returning);
 	var treq = qreq + valreq + ') returning '+rreq+';';
@@ -90,6 +89,7 @@ module.exports = function(pg, conop, schemas){
 	var schema = schemas.db[schemaName];
 
 	var qreq = 'insert into '+schema.tableName+' (';
+
 	var valreq = ') values ';
 
 	var rreq = fmtret(options.returning);
@@ -100,7 +100,7 @@ module.exports = function(pg, conop, schemas){
 	var rem = queryArray.length;
 
 	var callDB = function(){
-	    var treq = qreq + valreq + ') returning '+rreq+';';
+	    var treq = qreq + valreq + ' returning '+rreq+';';
 
 	    if(options.stringOnly) return callback(undefined, treq);
 
@@ -112,21 +112,19 @@ module.exports = function(pg, conop, schemas){
 		    return callback(ierr, (ires||{rows:[]}).rows[0]);
 		});
 	    }); 
-	}
-	
+	};
 
 	// loop over queryArray, adding values () blocks for each one
 	for(var i=0; i<queryArray.length; ++i){
-	    pg.insert(schemaName, queryArray[i], foroptions, function(err, str){
-		valreq += str + ',';
-		if(--rem){
+	    pg.insert(schemaName, queryArray[i], foroptions, function(err, strs){
+		valreq += strs.valreq + '),';
+		qreq = strs.qreq;
+		if(!--rem){
 		    valreq = valreq.slice(0,-1);
 		    callDB();
 		}
-	    }
+	    });
 	}
-
-
     };
 
 
@@ -219,6 +217,7 @@ module.exports = function(pg, conop, schemas){
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 // THIS IS WHERE TO PUT MULTISCHEMA (JOIN) READS
+// maybe move it somewhere else and just facade call it from here
 //-----------------------------------------------------------------------------------------
 //
 //  ['schema1','schema2'], {schema1:{query}, schema2:{query} }, {returning:{schema1:{r}, schema2:{r} } }
@@ -227,18 +226,35 @@ module.exports = function(pg, conop, schemas){
 //  or the join operator is not an equality
 //  an "on" clause must be specified in the options package
 //
-// if(typeof schemaNameOrNames === 'object')-> // array
-//
+ if(schemaNameOrNames.constructor == Array){
+
+     var schemae = schemaNameOrNames;//lazy
+
+// compute returning clauses
+     var rreqs = [];
+
+// these need prefices (join tableName as tableNameInstance) in case of multijoin to one table
+     for(var i=0; i<schemae.length; ++i) rreqs[i] = fmtret(options.returning[schemae[i]]);
+
+
 //   determine the join column for these two schema (if none, error!)
+
+// loop schema1.fields for a jointype of schema2, and schema2.fields for jointype of schema1
+// if unique, check on clause for operator
+// else check on clause for field and operator
+
+
 //   query should be split by schema
 //   select s1.returning,s2.returning from s1.tn join s2.tn on join-column1=join-column2
-//      where s1.where and s2.where
+//      where s1.where and s2.where limit # offset # orderby s2.col asc;
 //-----------------------------------------------------------------------------------------
+}
+
 
 	if(typeof schemaNameOrNames === 'string') schemaName = schemaNameOrNames;
 	var schema = schemas.db[schemaName];
 
-	var rreq = fmtret(options.returning); // which columns to select
+	var rreq = fmtret(options.returning);
 	var qreq = 'select '+rreq+' from '+schema.tableName;
 	var wreq = fmtwhere(schemaName, query);
 
@@ -250,15 +266,12 @@ module.exports = function(pg, conop, schemas){
 	    if(typeof options.offset === 'number'){
 		if(options.limit < 0) throw new Error('offset of '+options.offset+'less than zero');
 		oreq += ' offset '+options.offset;
-	    }else if(typeof options.offset !== 'undefined'){
+	    }else if(typeof options.offset !== 'undefined')
 		throw new Error('offset should be a number, not a '+(typeof options.offset));
-	    }
-	}else if(typeof options.limit !== 'undefined'){
+	}else if(typeof options.limit !== 'undefined')
 	    throw new Error('limit should be a number, not a '+(typeof options.limit));
-	}
 
 	if(typeof options.orderby === 'object'){ if(options.orderby.constructor == Array){
-	    
 	    for(var ic=0; ic<options.orderby.length; ++ic){
 		var cc = options.orderby[ic];
    //check that cc is in schema, otherwise use xattrs and only select where it exists?
@@ -460,7 +473,7 @@ function dmfig(s){
 
 function fmtret(rop){
     var rreq = '*';
-    if(rop){
+    if(rop) if(rop.length){
 	if(typeof rop === 'string'){
 	    rreq = rop;
 	}else if(rop.constructor == Array){

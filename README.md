@@ -52,7 +52,11 @@ limit queries
 
 json depth filters (where json->'key'='val')
 
+insertBatch (array of inserted objects)
+
 todo
+
+data verify
 
 document return types:
 
@@ -60,14 +64,9 @@ insert (1 record, json)
 upsert (array of objects updated)
 read (array of objects read)
 
-insertBatch (array of inserted objects)
 ...
 
-emptydb
-dropalltables
-
 write some tests::
-
 
 empty boot db
 
@@ -77,7 +76,7 @@ read those records
 
 update the records
 
-((batch insert some records))
+batch insert some records --> need in testdata.js
 
 json-depth read
 
@@ -123,6 +122,10 @@ array and json operators
 implement the useful parts of mongo syntax
 
 this may involve writing actual psql routines and saving them from pg.boot
+------------------------------
+
+make xattrs and hash default behaviour, move them out of defaultsFields
+this is just part of the odm. don't like it? don't use pgx
 
 ------------------------------
 
