@@ -56,6 +56,10 @@ insertBatch (array of inserted objects)
 
 todo
 
+batchInsert verify totals
+
+pgboot using batch insert
+
 data verify
 
 document return types:
@@ -91,13 +95,7 @@ limit & sorted reads
 ----------------
 
 
-fill in the docs
-
-delete rows
-
 schema verify schema cannot have anything called "group" or "user" or starting with a $
-
-unpack xattrs from psql (this might change the way queries are done? or just return vals?)
 
 range queries
 
