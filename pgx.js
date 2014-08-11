@@ -255,6 +255,14 @@ module.exports = function(pg, conop, schemas){
 	var schema = schemas.db[schemaName];
 
 	var rreq = fmtret(options.returning);
+
+	var areq= '', breq = '';
+
+	if(rreq !== '*'){
+	    var areq = 'select row_to_json(stat) from (';
+	    var breq = ') stat';
+	}
+
 	var qreq = 'select '+rreq+' from '+schema.tableName;
 	var wreq = fmtwhere(schemaName, query);
 
@@ -285,8 +293,8 @@ module.exports = function(pg, conop, schemas){
 	    oreq += ' '+cc.col+' '+cc.order;
 	}}
 
-	var treq = qreq + wreq + oreq + ';';
-
+	var treq = areq + qreq + wreq + oreq + breq + ';';
+console.log(treq);
 	if(options.stringOnly) return callback(undefined, treq);
 
 	pg.connect(conop, function(err, client, done) {
@@ -294,6 +302,12 @@ module.exports = function(pg, conop, schemas){
 	    client.query(treq, function(err, result) {
 		if(err) console.log(err);
 		done();
+
+		if(rreq !== '*'){
+		    for(var i=(result.rows||[]).length; i-->0;){
+			result.rows[i] = result.rows[i].row_to_json;
+		    }
+		}
 
 		//loop unpack xattrs
 		for(var i=(result.rows||[]).length; i-->0;){
@@ -471,20 +485,26 @@ function dmfig(s){
     return '$'+ns+'$';
 }
 
-function fmtret(rop){
+function fmtret(rop, schemaName){
     var rreq = '*';
     if(rop) if(rop.length){
 	if(typeof rop === 'string'){
+	    // check if is in schema, if not prepend schemaName_xattrs->
+
 	    rreq = rop;
 	}else if(rop.constructor == Array){
-	    rreq = '(';
-	    for(var i=0; i<rop.length; i++) rreq += rop[i] +',';
+	    rreq = '';
+	    for(var i=0; i<rop.length; i++){
+		// check if is in schema, if not prepend schemaName_xattrs->
+		rreq += rop[i] +',';
+	    }
 	    rreq = rreq.slice(0,-1);
-	    rreq += ')';
+	    rreq += '';
 	}
     }
     return rreq;
 }
+
 
 function formatas(data, type, dm, old){
     var ret = '';

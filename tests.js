@@ -73,6 +73,8 @@ describe('pgx', function(){
 	    });
 	});
 
+
+// this doesn't work for xattrs cols
 	describe('(returning:whatever)', function(){
 	    it('should return the inserted document', function(done){
 
