@@ -294,7 +294,7 @@ module.exports = function(pg, conop, schemas){
 	}}
 
 	var treq = areq + qreq + wreq + oreq + breq + ';';
-console.log(treq);
+
 	if(options.stringOnly) return callback(undefined, treq);
 
 	pg.connect(conop, function(err, client, done) {
