@@ -1,32 +1,83 @@
-pg wrap odm for node- postgres
+pgx odm for node- postgres (npm pg)
+===
+
+install::
+
+    npm install pgx
 
 
 docs:
 
 boot process:
 
-take a config pack, and require('pg')
+    var pg = require('pg');
+    var pgx = require('pgx')(pg, config.connection, schemas);
 
-    **copy line of actual code here**
+config.connection is for pg and is formatted as follows:
 
-config pack should have schemas
+    {
+    	conop:{
+    	    user: 'nik',
+    	    password: 'niksPassword',
+    	    database: 'niksDatabase',
+    	    host: 'localhost',
+    	    port: 5432
+    	}
+    }
 
-    **put example schemas here**
+schemas can be extended as you please and passed around, they look like this:
 
-schemas can be extended as you please and passed around
+    {
+        defaultFields:{
+    	    hash:{
+    	        type:'varchar(31)',
+    	        permissions:''
+    	    },
+    	    xattrs:{
+    	        type:'json',
+    	        defval:{}
+    	    }
+        },
+        db:{
+    	    domsnap:{
+    	        tableName:'niks_things',
+    	        fields:{
+    		    whatever:{
+    		        type:'json'
+    		    },
+    		    created:{
+    		        type:'timestamp'
+    		    }
+    	        }
+    	    }
+        }
+    }
+
+This needs better documentation, and to stop using keys as values. sorry.
+the type field is a postgres type
+defval is a default value. yeah, I could've used camel case. sorry.
+there's also the ability to define join types, which store a hash to join to.
+that needs documentation
+also, the default fields are very caked into everything, so at some point they'll cease to be optional
 
 db.boot
 
-** fix it, add NoDataTransfer option, document **
+    pgx.boot({}, function(a){res.json(a);});
 
-throwSelect, throwDrop
+I put this in a get route, run it on update, then push the code again without the route
+it should be idempotent, but I don't really trust it
+there's probably a better solution (like checking and updating on require)
+
+I think there's some options like if data should be retained, and there's gonna be something like "data map" in case you changed the name of something.
 
 
-pg-flex (thats the new name) gives you:
+pgx gives you:
 
-db.read(schemaNameOrNames, queryParams, options, callback(err,data))
-db.upsert(schemaNameOrNames, queryParams, options, callback(err,data))
-db.insert(schemaNameOrNames, queryParams, options, callback(err,data))
+pg.read(schemaNameOrNames, queryParams, options, callback(err,data))
+pg.upsert(schemaNameOrNames, queryParams, options, callback(err,data))
+pg.insert(schemaNameOrNames, queryParams, options, callback(err,data))
+
+on the original pg object. unconventional? probably.
 
 in addition to the original pg.connect -> client -> query -> ... routine
 
@@ -93,6 +144,8 @@ limit & sorted reads
 ((verifySchema))
 
 ----------------
+todo:
+----------------
 
 
 schema verify schema cannot have anything called "group" or "user" or starting with a $
@@ -146,3 +199,8 @@ writing into json
 json updates are done as read+ write in psql 9.3
 
 update in one query?
+
+--------
+--------
+
+congratulations! you made it to the bottom. this is a lot of work.

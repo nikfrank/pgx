@@ -1,13 +1,35 @@
- {
-  "name": "pgwrap",
+{
+  "name": "pgx",
   "version": "0.0.1",
+  "homepage": "http://nikfrank.com/#/works/pgx",
+  "description": "Simple as pie ODM for pg postgres module",
   "dependencies": {
-	"btoa":"1.1.1",
-	"crypto":"0.0.3",
-	"mocha":"1.18.2"
+    "btoa": "1.1.1",
+    "crypto": "0.0.3"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nikfrank/pgx.git"
+  },
+  "keywords": [
+    "pgx",
+    "postgres",
+    "odm"
+  ],
+  "devDependencies": {
+    "mocha": "1.18.2"
+  },
+  "main": "pgx",
   "engines": {
     "node": "0.10.x",
-    "npm":  "1.3.x"
+    "npm": "1.3.x"
+  },
+  "author": "Nik Frank <nikbfrank+npm@gmail.com> (http://nikfrank.com/)",
+  "license": "bsd 3-clause",
+  "bugs": {
+    "url": "https://github.com/nikfrank/pgx/issues"
+  },
+  "scripts": {
+    "test": "mocha"
   }
 }
