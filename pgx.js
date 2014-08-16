@@ -135,7 +135,7 @@ module.exports = function(pg, conop, schemas){
 	var qreq = 'update '+schema.tableName+' set ';
 
 	var where = input.where;
-	var query = input.data;
+	var query = input.data||input.query;
 
 	var wreq = fmtwhere(schemaName, where);
 	if(wreq === '') return callback({err:'no where clause available'});

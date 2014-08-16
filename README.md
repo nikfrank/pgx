@@ -1,6 +1,8 @@
 pgx odm for node- postgres (npm pg)
 ===
 
+pgx makes PostgreSQL feel like NoSQL - but only when you want.
+
 install::
 
     npm install pgx
@@ -72,6 +74,8 @@ db.boot
 
     pgx.boot({}, function(a){res.json(a);});
 
+pgx.boot makes all the tables in the database.
+
 I put this in a get route, run it on update, then push the code again without the route
 it should be idempotent, but I don't really trust it
 
@@ -81,24 +85,147 @@ I think there's some options like if data should be retained, and there's gonna 
 something like "data map" in case you changed the name of something.
 
 
+from here down needs cleanup
+===
+
 pgx gives you:
 
 
-pg.read(schemaNameOrNames, queryParams, options, callback(err,data))
+    pg.read(schemaNameOrNames, query, options, callback(err, data))
 
-pg.upsert(schemaNameOrNames, queryParams, options, callback(err,data))
+    pg.update(schemaName, input, options, callback(err, data))
 
-pg.insert(schemaNameOrNames, queryParams, options, callback(err,data))
+input has format {where:{key:val,..}, data/query:{key:val,..}}
+
+    pg.insert(schemaName, query, options, callback(err, data))
+    pg.insertBatch(...)
+
+
+    (( pg.erase(schemaName, query, options, callback(err, data)) ))
+    (( pg.schemaVerify() ))
 
 on the original pg object. unconventional? probably.
 
 in addition to the original pg.connect -> client -> query -> ... routine
 
-+ stringOnly option
+all of these can be called omitting the options param (check this)
 
-** check these siggies. I'm doing this from memory **
 
-** also document the options in each one **
+you can write and read data not listed in your schemas
+
+it gets written to a schemaname_xattrs json column, and unpackaged on read
+
+basically it feels like MongoDB where you are constrained by your schema
+
+
+options
+-------
+
+stringOnly
+---
+
+    {stringOnly: false}
+
+the callback will be passed the SQL string. I suppose it could also just return it but
+I went with the callback to preserve the async stuff in case a json update requires a
+read in order to make the SQL string.
+
+
+limit
+---
+
+    {limit: number}
+
+pass a limit clause to the read
+
+
+offset
+---
+
+    {offset: number}
+
+pass an offset clause to the read
+
+
+orderby
+---
+
+    {orderby: {col:'fieldname', order:'psql order type'}}
+    {orderby: [{col:'fieldname', order:'psql order type'},..]}
+
+pass an orderby clause or clauses to the read
+
+
+returning
+---
+
+    {returning: '*'}
+
+this determines the values you're reading from the db and returning
+
+obviously it's a good idea to use this to minimize the data read from cloud dbs
+
+just pass it an array of strings of the column (field) names you want
+
+currently does not work for extended attribute fields (TODO)
+
+
+valreqOnly
+---
+
+    {valreqOnly: false}
+
+this is used internally (but available externally) to clip the returning clause from an
+insert statement (and callback just the SQL string). It's used for lazying batch insert.
+
+
+noinsert
+---
+
+    {noinsert: false}
+
+this is on update (which is really upsert despite the name) which if true will sent a
+noent error to the callback if there isn't an entry to update
+
+
+xorjson
+---
+
+    {xorjson: false}
+
+if true will overwrite fields in json, false will overwrite the entire json
+
+I don't think this is being tested right now, for json or json[] (TODO)
+
+
+throwSelect, throwDrop
+---
+
+    {throwSelect:false, throwDrop:false}
+
+whether to throw errors in pgboot or just ignore them
+
+
+empty
+---
+
+    {empty: false}
+
+whether to make the new tables empty from pgboot
+
+
+deleteLinked
+---
+
+unimplemented, as erase is unimplemented
+
+    {deleteLinked: false}
+
+in order to delete records linked by the hashing system
+
+---
+---
+
 
 ** talk about how the xattrs field makes this feel like mongo **
 
@@ -108,17 +235,12 @@ in addition to the original pg.connect -> client -> query -> ... routine
 
 ** join type **
 
-** options.returning **
-
-"order by" type queries
-
-limit queries
-
 json depth filters (where json->'key'='val')
 
 insertBatch (array of inserted objects)
 
 todo
+---
 
 batchInsert verify totals
 
@@ -217,3 +339,16 @@ update in one query?
 --------
 
 congratulations! you made it to the bottom. this is a lot of work.
+
+I release this with no warranty, AS IS, you use it at your own risk
+
+I think it's under the BSD 3 clause license, frankly as long as you don't
+take undue credit for it do whatever you want.
+
+I reserve the right to do whatever I want, including making breaking changes
+
+the whole point of the npm version system is to allow me to do that, so don't complain.
+
+
+this is clearly an ongoing project - there's a lot here that works and makes my life
+easier, but it's a long way from being a polished (or even shiny at all) module.
