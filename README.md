@@ -54,11 +54,19 @@ schemas can be extended as you please and passed around, they look like this:
     }
 
 This needs better documentation, and to stop using keys as values. sorry.
+
 the type field is a postgres type
+
 defval is a default value. yeah, I could've used camel case. sorry.
+
 there's also the ability to define join types, which store a hash to join to.
+
 that needs documentation
-also, the default fields are very caked into everything, so at some point they'll cease to be optional
+
+also, the default fields are very caked into everything, so at some point they'll cease 
+to be optional
+
+also, default types are prefixed with the schemaName, which is the key in the db object
 
 db.boot
 
@@ -66,15 +74,20 @@ db.boot
 
 I put this in a get route, run it on update, then push the code again without the route
 it should be idempotent, but I don't really trust it
+
 there's probably a better solution (like checking and updating on require)
 
-I think there's some options like if data should be retained, and there's gonna be something like "data map" in case you changed the name of something.
+I think there's some options like if data should be retained, and there's gonna be
+something like "data map" in case you changed the name of something.
 
 
 pgx gives you:
 
+
 pg.read(schemaNameOrNames, queryParams, options, callback(err,data))
+
 pg.upsert(schemaNameOrNames, queryParams, options, callback(err,data))
+
 pg.insert(schemaNameOrNames, queryParams, options, callback(err,data))
 
 on the original pg object. unconventional? probably.
