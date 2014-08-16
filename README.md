@@ -227,7 +227,87 @@ in order to delete records linked by the hashing system
 ---
 
 
-** talk about how the xattrs field makes this feel like mongo **
+
+api dev testing and doc progress
+---
+
+pg.
+===
+
+read
+---
+
+dev: true
+
+tests: basic, stringOnly, 
+
+docs:
+
+
+
+update
+---
+
+dev: true
+
+tests:
+
+docs:
+
+
+
+insert
+---
+
+dev: true
+
+tests:
+
+docs:
+
+
+
+insertBatch
+---
+
+dev: true
+
+tests:
+
+docs:
+
+
+
+erase
+---
+
+tests:
+
+docs:
+
+
+
+boot
+---
+
+dev: true
+
+tests:
+
+docs:
+
+
+
+verifySchema
+---
+
+tests:
+
+docs:
+
+
+
+
 
 ** catchies:: 'group' 'user' **
 
@@ -236,8 +316,6 @@ in order to delete records linked by the hashing system
 ** join type **
 
 json depth filters (where json->'key'='val')
-
-insertBatch (array of inserted objects)
 
 todo
 ---
