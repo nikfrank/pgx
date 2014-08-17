@@ -239,8 +239,13 @@ read
 
 dev: true
 
-tests: basic, stringOnly, 
+todo: from arrays, json?, join read
 
+tests: {stringOnly:true} ish, {limit:3} ?, orderby ?
+
+todo: {}, {field:val}, {jsonfield:{key:val}}, {xfield:val}, 
+      {returning:['col1','col2']}, {returning:['col1','col2', 'xfield']},
+      ['schema1', 'schema2']
 docs:
 
 
@@ -252,6 +257,8 @@ dev: true
 
 tests:
 
+todo: {stringOnly:true}, {}, {noinsert:true}
+
 docs:
 
 
@@ -261,7 +268,10 @@ insert
 
 dev: true
 
-tests:
+tests: {stringOnly: true} ish, {} ish, {returning:[]} ish
+
+tests should verify more data
+returning test uses [] - needs to be verified with data
 
 docs:
 
@@ -272,7 +282,7 @@ insertBatch
 
 dev: true
 
-tests:
+tests: {strinOnly:true} ish, {} ish
 
 docs:
 
@@ -281,7 +291,9 @@ docs:
 erase
 ---
 
-tests:
+dev: false
+
+tests: uidquery -> erase
 
 docs:
 
@@ -292,7 +304,7 @@ boot
 
 dev: true
 
-tests:
+tests: {empty:true}
 
 docs:
 
@@ -300,6 +312,8 @@ docs:
 
 verifySchema
 ---
+
+dev: false
 
 tests:
 

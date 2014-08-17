@@ -217,7 +217,6 @@ console.log('err',err);
 //---------------------------------------------------------------------------
     describe('update', function(){
 
-
 	before(function(done){
 	    var ii; ii = setInterval(function(){
 		if(teststatus === 'read'){
