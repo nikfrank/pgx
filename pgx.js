@@ -78,7 +78,17 @@ module.exports = function(pg, conop, schemas){
 
 	    client.query(treq, function(ierr, ires){
 		done();
-		return callback(ierr, (ires||{rows:[]}).rows[0]);
+
+		var retres = (ires||{rows:[]}).rows[0];
+
+		// flatten xattrs here
+		if(schemaName+'_xattrs' in retres){
+		    for(var ff in retres[schemaName+'_xattrs'])
+			retres[ff] = retres[schemaName+'_xattrs'][ff];
+		    delete retres[schemaName+'_xattrs'];
+		}
+
+		return callback(ierr, retres);
 	    });
 	});
     };
@@ -206,7 +216,18 @@ module.exports = function(pg, conop, schemas){
 		    if(ierr) ep = {err:ierr, stmt:treq};
 
 		    done();
-		    return callback(ep, (ires||{}).rows);
+
+		    var retres = (ires||{rows:[]}).rows[0];
+
+		    // flatten xattrs here
+		    if(schemaName+'_xattrs' in retres){
+			for(var ff in retres[schemaName+'_xattrs'])
+			    retres[ff] = retres[schemaName+'_xattrs'][ff];
+			delete retres[schemaName+'_xattrs'];
+		    }
+
+		    return callback(ierr, retres);
+
 		});
 	    });
 	});

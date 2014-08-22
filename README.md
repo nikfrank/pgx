@@ -41,14 +41,15 @@ schemas can be extended as you please and passed around, they look like this:
     	    }
         },
         db:{
-    	    domsnap:{
+    	    thing:{
     	        tableName:'niks_things',
     	        fields:{
     		    whatever:{
     		        type:'json'
     		    },
     		    created:{
-    		        type:'timestamp'
+    		        type:'timestamp',
+			devfal:'now()'
     		    }
     	        }
     	    }
@@ -64,6 +65,13 @@ defval is a default value. yeah, I could've used camel case. sorry.
 there's also the ability to define join types, which store a hash to join to.
 
 that needs documentation
+
+also, the "db" field is a leftover from the idea that there'd be a seperate field for docs
+it basically means "tables"
+
+the permissions field on hash is an artifact of me considering extending this to have fine
+grained permissions (per column)
+
 
 also, the default fields are very caked into everything, so at some point they'll cease 
 to be optional
@@ -97,9 +105,12 @@ pgx gives you:
 
 input has format {where:{key:val,..}, data/query:{key:val,..}}
 
-    pg.insert(schemaName, query, options, callback(err, data))
-    pg.insertBatch(...)
+    pg.insert(schemaName, query, options, callback(err, dataInserted))
 
+    pg.insertBatch(schemaName, [querys], options, callback(err, data))
+
+
+    pg.boot(options, callback, errcallback)
 
     (( pg.erase(schemaName, query, options, callback(err, data)) ))
     (( pg.schemaVerify() ))
@@ -117,6 +128,9 @@ it gets written to a schemaname_xattrs json column, and unpackaged on read
 
 basically it feels like MongoDB where you are constrained by your schema
 
+except that the returning clause (in options) doesn't work for extended fields yet.
+
+
 
 options
 -------
@@ -131,12 +145,18 @@ I went with the callback to preserve the async stuff in case a json update requi
 read in order to make the SQL string.
 
 
+available on: insert, read, ...
+
+
 limit
 ---
 
     {limit: number}
 
 pass a limit clause to the read
+
+
+available on: 
 
 
 offset
@@ -147,6 +167,9 @@ offset
 pass an offset clause to the read
 
 
+available on: 
+
+
 orderby
 ---
 
@@ -154,6 +177,9 @@ orderby
     {orderby: [{col:'fieldname', order:'psql order type'},..]}
 
 pass an orderby clause or clauses to the read
+
+
+available on: 
 
 
 returning
@@ -170,6 +196,9 @@ just pass it an array of strings of the column (field) names you want
 currently does not work for extended attribute fields (TODO)
 
 
+available on: 
+
+
 valreqOnly
 ---
 
@@ -179,6 +208,9 @@ this is used internally (but available externally) to clip the returning clause 
 insert statement (and callback just the SQL string). It's used for lazying batch insert.
 
 
+available on: 
+
+
 noinsert
 ---
 
@@ -186,6 +218,9 @@ noinsert
 
 this is on update (which is really upsert despite the name) which if true will sent a
 noent error to the callback if there isn't an entry to update
+
+
+available on: 
 
 
 xorjson
@@ -198,12 +233,18 @@ if true will overwrite fields in json, false will overwrite the entire json
 I don't think this is being tested right now, for json or json[] (TODO)
 
 
+available on: 
+
+
 throwSelect, throwDrop
 ---
 
     {throwSelect:false, throwDrop:false}
 
 whether to throw errors in pgboot or just ignore them
+
+
+available on: 
 
 
 empty
@@ -214,6 +255,9 @@ empty
 whether to make the new tables empty from pgboot
 
 
+available on: 
+
+
 deleteLinked
 ---
 
@@ -222,6 +266,10 @@ unimplemented, as erase is unimplemented
     {deleteLinked: false}
 
 in order to delete records linked by the hashing system
+
+
+available on: 
+
 
 ---
 ---
@@ -323,18 +371,18 @@ docs:
 
 
 
-** catchies:: 'group' 'user' **
-
 ** default fields, values **
 
 ** join type **
 
 json depth filters (where json->'key'='val')
 
-todo
+
+
+todo (testing and docs)
 ---
 
-batchInsert verify totals
+batchInsert test verify totals
 
 pgboot using batch insert
 
@@ -343,7 +391,9 @@ data verify
 document return types:
 
 insert (1 record, json)
+
 upsert (array of objects updated)
+
 read (array of objects read)
 
 ...
@@ -371,9 +421,10 @@ limit & sorted reads
 ((verifySchema))
 
 ----------------
-todo:
+todo (code)
 ----------------
 
+returning clause from [within json, xattrs]
 
 schema verify schema cannot have anything called "group" or "user" or starting with a $
 
@@ -392,11 +443,20 @@ array and json operators
 - dereferenced array & object
 
 'authors[0].name':{$like:'%Frank'}
+
 'authors[2:5].name':{$like:'%Frank'}
+
 'authors.name':{$like:'%Frank'}
+
 'authors':{name:{$like:'%Frank'},location:'tel aviv'}
+
 'authors':{$elemMatch:{name:{$like:'%Frank'},location:'tel aviv'} }
+
+
+ideas
 ...
+
+
 implement the useful parts of mongo syntax
 
 this may involve writing actual psql routines and saving them from pg.boot
