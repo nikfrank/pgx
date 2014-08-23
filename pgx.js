@@ -470,12 +470,13 @@ function fmtwhere(schemaName, query){
 			    if(query[ff][kk].constructor != Array) continue;
 
 			    // where value in [val,..]
-			    wreq += ff + ' in {';
+			    wreq += ff + ' = any (ARRAY[';
 			    for(var i=query[ff][kk].length; i-->0;){
 				var dm = dmfig(query[ff][kk][i]);
-				wreq += dm + query[ff][kk][i] + dm + ' ';
+				wreq += dm + query[ff][kk][i] + dm + ', ';
 			    }
-			    wreq += '} and '
+			    wreq = wreq.slice(0,-2);
+			    wreq += ']::'+schema.fields[ff].type+'[]) and '
 			}
 		    }else{
 			var dmk = dmfig(kk);
@@ -498,12 +499,13 @@ function fmtwhere(schemaName, query){
 			    if(query[ff][kk].constructor != Array) continue;
 
 			    // where value in [val,..]
-			    wreq += ff + ' in {';
+			    wreq += ff + ' = any (ARRAY[';
 			    for(var i=query[ff][kk].length; i-->0;){
 				var dm = dmfig(query[ff][kk][i]);
-				wreq += dm + query[ff][kk][i] + dm + ' ';
+				wreq += dm + query[ff][kk][i] + dm + ', ';
 			    }
-			    wreq += '} and '
+			    wreq = wreq.slice(0,-2);
+			    wreq += ']::varchar(31)[]) and '
 			}
 		    }
 		}
