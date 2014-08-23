@@ -44,13 +44,13 @@ schemas can be extended as you please and passed around, they look like this:
     	    thing:{
     	        tableName:'niks_things',
     	        fields:{
-    		    whatever:{
-    		        type:'json'
-    		    },
-    		    created:{
-    		        type:'timestamp',
-			devfal:'now()'
-    		    }
+                    whatever:{
+                        type:'json'
+                    },
+                    created:{
+                        type:'timestamp',
+                        devfal:'now()'
+                    }
     	        }
     	    }
         }

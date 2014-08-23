@@ -200,6 +200,15 @@ console.log('err',err);
 	    });
 	});
 
+	describe('({key:{$in:[val,..]}})', function(){
+	    it.skip('should find a doc with key in [val,..]', function(done){
+		pgx.read('rule', {lang:'iw',type:{$in:['v','n']}}, {}, function(err, res){
+		    //check content of the return
+		    done(err);
+		});
+	    });
+	});
+
 	describe('({orderby:{col:"name",order:"asc"}})', function(){
 	    it.skip('should find docs and return them sorted', function(done){
 		pgx.read('rule', {lang:'iw',type:'v'}, {orderby:{col:"name",order:"asc"}}, function(err, res){

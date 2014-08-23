@@ -464,10 +464,25 @@ function fmtwhere(schemaName, query){
 // this currently only supports tring depth reads.
 
 		for(var kk in query[ff]){
-		    
-		    var dmk = dmfig(kk);
-		    var dm = dmfig(query[ff][kk]);
-		    wreq += ff + '->>' + dmk + kk + dmk + '=' + dm + query[ff][kk] + dm + ' and ';//formatas?
+		    if(kk[0] === '$'){
+// document this!!!
+			if(kk === '$in'){
+			    if(query[ff][kk].constructor != Array) continue;
+
+			    // where value in [val,..]
+			    wreq += ff + ' in {';
+			    for(var i=query[ff][kk].length; i-->0;){
+				var dm = dmfig(query[ff][kk][i]);
+				wreq += dm + query[ff][kk][i] + dm + ' ';
+			    }
+			    wreq += '} and '
+			}
+		    }else{
+			var dmk = dmfig(kk);
+			var dm = dmfig(query[ff][kk]);
+			wreq += ff + '->>' + dmk + kk + dmk + '=' + dm + query[ff][kk] + dm + ' and ';
+			//formatas?
+		    }
 		}
 	    }else{
 		var dm = dmfig(query[ff]);
@@ -475,7 +490,7 @@ function fmtwhere(schemaName, query){
 	    }
 	}
 	else if(ff === schemaName+'_hash'){
-		var dm = dmfig(query[ff]);
+	    var dm = dmfig(query[ff]);
 	    wreq += ff + '=' + formatas(query[ff], 'varchar(31)', dm) + ' and ';
 	}
 	// xattr reads
@@ -495,6 +510,7 @@ function fmtwhere(schemaName, query){
 
 function dmfig(s){
     // determine the first delimiter of style $N$ which isnt present
+    if(typeof s === 'number') return '';
     var n=0;
     var S = JSON.stringify(s);
     var ns = btoa(''+((n-n%100)/100)+''+((n%100-n%10)/10)+''+n%10);
