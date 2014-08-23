@@ -316,7 +316,7 @@ module.exports = function(pg, conop, schemas){
 
 	var treq = areq + qreq + wreq + oreq + breq + ';';
 
-	if(options.stringOnly) return callback(undefined, treq);
+	if(options.stringOnly) return callback(null, treq);
 
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return res.json({err:err});
@@ -490,8 +490,27 @@ function fmtwhere(schemaName, query){
 	    }
 	}
 	else if(ff === schemaName+'_hash'){
-	    var dm = dmfig(query[ff]);
-	    wreq += ff + '=' + formatas(query[ff], 'varchar(31)', dm) + ' and ';
+	    if(typeof query[ff] === 'object'){
+		for(var kk in query[ff]){
+		    if(kk[0] === '$'){
+// document this!!!
+			if(kk === '$in'){
+			    if(query[ff][kk].constructor != Array) continue;
+
+			    // where value in [val,..]
+			    wreq += ff + ' in {';
+			    for(var i=query[ff][kk].length; i-->0;){
+				var dm = dmfig(query[ff][kk][i]);
+				wreq += dm + query[ff][kk][i] + dm + ' ';
+			    }
+			    wreq += '} and '
+			}
+		    }
+		}
+	    }else{
+		var dm = dmfig(query[ff]);
+		wreq += ff + '=' + formatas(query[ff], 'varchar(31)', dm) + ' and ';
+	    }
 	}
 	// xattr reads
 	else{   
