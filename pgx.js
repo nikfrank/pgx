@@ -119,7 +119,7 @@ module.exports = function(pg, conop, schemas){
 
 		client.query(treq, function(ierr, ires){
 		    done();
-		    return callback(ierr, (ires||{rows:[]}).rows[0]);
+		    return callback(ierr, (ires||{rows:[]}).rows);
 		});
 	    }); 
 	};
@@ -137,9 +137,14 @@ module.exports = function(pg, conop, schemas){
 	}
     };
 
+    pg.insertBatch = pg.batchInsert;
 
     pg.update = function(schemaName, input, options, callback){
 	
+
+// if there's no json or xattrs, this should be done in one request
+// that would require me to know what I was doing with postgres tho!
+
 	var schema = schemas.db[schemaName];
 
 	var qreq = 'update '+schema.tableName+' set ';
@@ -173,7 +178,7 @@ module.exports = function(pg, conop, schemas){
 		    var qq = {};
 		    for(var ff in query) qq[ff] = query[ff];
 		    for(var ff in where) qq[ff] = where[ff];
-
+console.log(qq);
 		    return pg.insert(schemaName, qq, options, callback);
 		}
 
@@ -186,7 +191,6 @@ module.exports = function(pg, conop, schemas){
 		    var dm = dmfig(query[ff]);
 		    var old;
 
-//document options.xorjson
 		    if(schema.fields[ff].type.indexOf('json')>-1) if(options.xorjson) old = doc[ff];
 
 		    qreq += formatas(query[ff], schema.fields[ff].type, dm, old) + ',';
@@ -232,6 +236,8 @@ module.exports = function(pg, conop, schemas){
 	    });
 	});
     };
+
+    pg.upsert = pg.update;
 
 
     pg.read = function(schemaNameOrNames, query, options, callback){

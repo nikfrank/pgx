@@ -424,6 +424,8 @@ limit & sorted reads
 todo (code)
 ----------------
 
+array $contains
+
 returning clause from [within json, xattrs]
 
 schema verify schema cannot have anything called "group" or "user" or starting with a $
@@ -488,6 +490,13 @@ json updates are done as read+ write in psql 9.3
 update in one query?
 
 --------
+
+stuff to doc
+
+
+alias upsert, insertBatch
+
+
 --------
 
 congratulations! you made it to the bottom. this is a lot of work.
