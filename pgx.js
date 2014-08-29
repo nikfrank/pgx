@@ -493,6 +493,19 @@ function fmtwhere(schemaName, query){
 
 			    var dm = dmfig(query[ff][kk]);
 			    wreq += dm + query[ff][kk] + dm + ' = any ('+ff+') and ';
+
+			}else if(kk === '$select'){
+			    // this is probably a bad idea
+
+			    //usr_fb_id: {$select: {schema:'usr', field:'usr_fb_id', where{...}}}
+
+			    var ss = query[ff][kk].schema;
+
+			    var ssf = query[ff][kk].field || ss+'_hash';
+			    var sst = schemas.db[ss].tableName;
+
+			    wreq += ff + ' = any (select ' + ssf + ' from '+ sst +
+				fmtwhere(ss, query[ff][kk].where) + ') and ';
 			}
 		    }else{
 			var dmk = dmfig(kk);
@@ -522,6 +535,21 @@ function fmtwhere(schemaName, query){
 			    }
 			    wreq = wreq.slice(0,-2);
 			    wreq += ']::varchar(31)[]) and '
+
+			}else if(kk === '$select'){
+			    // this is probably a bad idea
+
+			    //topic_hash: {$select: {schema:'usr', field:'teaching', where{...}}}
+
+// I dont know if this will work without flattening the result array of arrays
+
+			    var ss = query[ff][kk].schema;
+
+			    var ssf = query[ff][kk].field || ss+'_hash';
+			    var sst = schemas.db[ss].tableName;
+
+			    wreq += ff + ' = any (select ' + ssf + ' from '+ sst +
+				fmtwhere(ss, query[ff][kk].where) + ') and ';
 			}
 		    }
 		}

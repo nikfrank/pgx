@@ -430,7 +430,7 @@ array push if not contains
 
 returning clause from [within json, xattrs]
 
-schema verify schema cannot have anything called "group" or "user" or starting with a $
+schema verify schema cannot have anything called "group" or "user" "from" "to" or starting with a $
 
 range queries
 
@@ -500,6 +500,7 @@ alias upsert, insertBatch
 
 array $contains
 
+$select sub query (also test)
 
 big doc on schemas
 
