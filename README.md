@@ -424,7 +424,7 @@ limit & sorted reads
 todo (code)
 ----------------
 
-array $contains
+array $contains, push if not contains
 
 returning clause from [within json, xattrs]
 

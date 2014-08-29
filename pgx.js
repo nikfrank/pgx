@@ -178,7 +178,7 @@ module.exports = function(pg, conop, schemas){
 		    var qq = {};
 		    for(var ff in query) qq[ff] = query[ff];
 		    for(var ff in where) qq[ff] = where[ff];
-console.log(qq);
+
 		    return pg.insert(schemaName, qq, options, callback);
 		}
 
@@ -191,7 +191,8 @@ console.log(qq);
 		    var dm = dmfig(query[ff]);
 		    var old;
 
-		    if(schema.fields[ff].type.indexOf('json')>-1) if(options.xorjson) old = doc[ff];
+		    if(schema.fields[ff].type.indexOf('json')>-1)
+			if(options.xorjson) old = doc[ff];
 
 		    qreq += formatas(query[ff], schema.fields[ff].type, dm, old) + ',';
 		}
@@ -277,7 +278,7 @@ console.log(qq);
 //-----------------------------------------------------------------------------------------
 }
 
-
+	var schemaName;
 	if(typeof schemaNameOrNames === 'string') schemaName = schemaNameOrNames;
 	var schema = schemas.db[schemaName];
 
@@ -324,6 +325,7 @@ console.log(qq);
 
 	if(options.stringOnly) return callback(null, treq);
 
+
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return res.json({err:err});
 	    client.query(treq, function(err, result) {
@@ -338,7 +340,9 @@ console.log(qq);
 
 		//loop unpack xattrs
 		for(var i=(result.rows||[]).length; i-->0;){
-		    if(!(schemaName+'_xattrs' in result.rows[i])) continue;
+		    if(!(schemaName+'_xattrs' in result.rows[i])){
+			continue;
+		    }
 		    for(var ff in result.rows[i][schemaName+'_xattrs'])
 			result.rows[i][ff] = result.rows[i][schemaName+'_xattrs'][ff];
 		    delete result.rows[i][schemaName+'_xattrs'];
