@@ -412,6 +412,8 @@ batch insert some records --> need in testdata.js
 
 json-depth read
 
+array $contains
+
 ((join read))
 
 limit & sorted reads
@@ -424,7 +426,7 @@ limit & sorted reads
 todo (code)
 ----------------
 
-array $contains, push if not contains
+array push if not contains
 
 returning clause from [within json, xattrs]
 
@@ -496,6 +498,12 @@ stuff to doc
 
 alias upsert, insertBatch
 
+array $contains
+
+
+big doc on schemas
+
+big doc on queries
 
 --------
 

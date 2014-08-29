@@ -487,6 +487,12 @@ function fmtwhere(schemaName, query){
 			    }
 			    wreq = wreq.slice(0,-2);
 			    wreq += ']::'+schema.fields[ff].type+'[]) and '
+
+			}else if(kk === '$contains'){
+			    if(schema.fields[ff].type.indexOf('[]') === -1) continue;
+
+			    var dm = dmfig(query[ff][kk]);
+			    wreq += dm + query[ff][kk] + dm + ' = any ('+ff+') and ';
 			}
 		    }else{
 			var dmk = dmfig(kk);
