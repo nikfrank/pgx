@@ -460,7 +460,29 @@ function fmtwhere(schemaName, query){
 
     for(var ff in query){
 	if(ff in schema.fields){
-	    if(typeof query[ff] === 'object'){
+	    if(query[ff].constructor == Array){
+
+		if(schema.fields[ff].type.indexOf('[]') === -1) continue;
+
+		// match the array?
+		wreq += ff + ' @> ARRAY[';
+		for(var i=query[ff].length; i-->0;){
+		    var dm = dmfig(query[ff][i]);
+		    wreq += dm + query[ff][i] + dm + ', ';
+		}
+		wreq = wreq.slice(0,-2);
+		wreq += ']::'+schema.fields[ff].type+' and '
+
+		wreq += ff + ' <@ ARRAY[';
+		for(var i=query[ff].length; i-->0;){
+		    var dm = dmfig(query[ff][i]);
+		    wreq += dm + query[ff][i] + dm + ', ';
+		}
+		wreq = wreq.slice(0,-2);
+		wreq += ']::'+schema.fields[ff].type+' and '
+
+
+	    }else if(typeof query[ff] === 'object'){
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 // THIS IS WHERE TO PUT OPERATOR DYNAMIC (ie range/regexp queries)
