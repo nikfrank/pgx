@@ -222,6 +222,8 @@ module.exports = function(pg, conop, schemas){
 
 		    done();
 
+		    if(ep) callback(ep);
+
 		    var retres = (ires||{rows:[]}).rows[0];
 
 		    // flatten xattrs here
