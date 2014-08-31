@@ -7,10 +7,7 @@ install::
 
     npm install pgx
 
-
-docs:
-
-boot process:
+---
 
     var pg = require('pg');
     var pgx = require('pgx')(pg, config.connection, schemas);
@@ -29,77 +26,70 @@ config.connection is for pg and is formatted as follows:
 
 schemas can be extended as you please and passed around, they look like this:
 
-    {
-        defaultFields:{
-    	    hash:{
-    	        type:'varchar(31)',
-    	        permissions:''
-    	    },
-    	    xattrs:{
-    	        type:'json',
-    	        defval:{}
-    	    }
-        },
-        db:{
-    	    thing:{
-    	        tableName:'niks_things',
-    	        fields:{
-                    whatever:{
-                        type:'json'
-                    },
-                    created:{
-                        type:'timestamp',
-                        devfal:'now()'
-                    }
-    	        }
+    module.exports = {
+        thing:{
+    	    tableName:'niks_things',
+    	    fields:{
+                whatever:{
+                    type:'json'
+                },
+                created:{
+                    type:'timestamp',
+                    devfal:'now()'
+                }
     	    }
         }
     }
 
-This needs better documentation, and to stop using keys as values. sorry.
+where this example is being "require"d then passed to pgx
 
 the type field is a postgres type
 
-defval is a default value. yeah, I could've used camel case. sorry.
+defval is a default value passed directly to postgres
 
-there's also the ability to define join types, which store a hash to join to.
+there's also the ability to define join types, which store a hash to join to. (finish & doc)
 
-that needs documentation
+two default fields are defined on every table:
 
-also, the "db" field is a leftover from the idea that there'd be a seperate field for docs
-it basically means "tables"
+schemaName_hash: varchar(31) // hash assigned at creation, used for joins
 
-the permissions field on hash is an artifact of me considering extending this to have fine
-grained permissions (per column)
+schemaName_xattrs: json // used to hold data not fitting into the schema
+
+do not overwrite these. it will throw postgres errors
 
 
-also, the default fields are very caked into everything, so at some point they'll cease 
-to be optional
+see schemas.js for an example for a language app
 
-also, default types are prefixed with the schemaName, which is the key in the db object
+("permissions" and "required" fields listed there are not implemented)
 
-db.boot
 
-    pgx.boot({}, function(a){res.json(a);});
 
-pgx.boot makes all the tables in the database.
+
+pgx.boot
+===
+
+    pgx.boot({}, function(a){ res.json(a); } );
+
+pgx.boot copies data in existing tables, makes new tables to the schemas, replaces the data.
 
 I put this in a get route, run it on update, then push the code again without the route
 it should be idempotent, but I don't really trust it
 
 there's probably a better solution (like checking and updating on require)
 
-I think there's some options like if data should be retained, and there's gonna be
+I think there'll be some options like if data should be retained, and there's gonna be
 something like "data map" in case you changed the name of something.
 
 
-from here down needs cleanup
-===
+pgx.boot has only one option "empty", which if true, will not transfer data - to boot an empty db
+
+
 
 pgx gives you:
 
-
     pg.read(schemaNameOrNames, query, options, callback(err, data))
+
+schemaNameOrNames = 'schemaName' for normal reads, ['schemaName1','schemaName2',..] for join reads
 
     pg.update(schemaName, input, options, callback(err, data))
 
@@ -119,17 +109,17 @@ on the original pg object. unconventional? probably.
 
 in addition to the original pg.connect -> client -> query -> ... routine
 
-all of these can be called omitting the options param (check this)
+all of these can be called omitting the options param (not impl. yet)
 
 
 you can write and read data not listed in your schemas
 
-it gets written to a schemaname_xattrs json column, and unpackaged on read
+it gets written to a schemaName_xattrs json column, and unpackaged on read
 
-basically it feels like MongoDB where you are constrained by your schema
+basically it feels like MongoDB where you are unconstrained by your schema
 
 except that the returning clause (in options) doesn't work for extended fields yet.
-
+(listed as "json depth read" in todo code)
 
 
 options
@@ -156,7 +146,7 @@ limit
 pass a limit clause to the read
 
 
-available on: 
+available on: read (not join)
 
 
 offset
@@ -167,7 +157,7 @@ offset
 pass an offset clause to the read
 
 
-available on: 
+available on: read (not join)
 
 
 orderby
@@ -179,7 +169,7 @@ orderby
 pass an orderby clause or clauses to the read
 
 
-available on: 
+available on: read (not join)
 
 
 returning
@@ -196,7 +186,7 @@ just pass it an array of strings of the column (field) names you want
 currently does not work for extended attribute fields (TODO)
 
 
-available on: 
+available on: read, read joined, everything?
 
 
 valreqOnly
@@ -208,7 +198,7 @@ this is used internally (but available externally) to clip the returning clause 
 insert statement (and callback just the SQL string). It's used for lazying batch insert.
 
 
-available on: 
+available on: insert
 
 
 noinsert
@@ -220,7 +210,7 @@ this is on update (which is really upsert despite the name) which if true will s
 noent error to the callback if there isn't an entry to update
 
 
-available on: 
+available on: update
 
 
 xorjson
@@ -233,7 +223,7 @@ if true will overwrite fields in json, false will overwrite the entire json
 I don't think this is being tested right now, for json or json[] (TODO)
 
 
-available on: 
+available on: update
 
 
 throwSelect, throwDrop
@@ -244,7 +234,7 @@ throwSelect, throwDrop
 whether to throw errors in pgboot or just ignore them
 
 
-available on: 
+available on: boot
 
 
 empty
@@ -255,7 +245,7 @@ empty
 whether to make the new tables empty from pgboot
 
 
-available on: 
+available on: boot
 
 
 deleteLinked
@@ -268,10 +258,11 @@ unimplemented, as erase is unimplemented
 in order to delete records linked by the hashing system
 
 
-available on: 
+available on: (erase)
 
 
 ---
+below here are notes for me
 ---
 
 
@@ -371,14 +362,6 @@ docs:
 
 
 
-** default fields, values **
-
-** join type **
-
-json depth filters (where json->'key'='val')
-
-
-
 todo (testing and docs)
 ---
 
@@ -398,7 +381,6 @@ read (array of objects read)
 
 ...
 
-write some tests::
 
 empty boot db
 
@@ -430,7 +412,10 @@ array push if not contains
 
 returning clause from [within json, xattrs]
 
+where clause in xattrs/json (json depth reads)
+
 schema verify schema cannot have anything called "group" or "user" "from" "to" or starting with a $
+(basically any postgres keyword is not allowed for schemaNames or tableNames
 
 range queries
 
@@ -464,12 +449,9 @@ ideas
 implement the useful parts of mongo syntax
 
 this may involve writing actual psql routines and saving them from pg.boot
-------------------------------
-
-make xattrs and hash default behaviour, move them out of defaultsFields
-this is just part of the odm. don't like it? don't use pgx
 
 ------------------------------
+
 
 transferring data in the instance of non-compatible type change
 

@@ -3,12 +3,23 @@ var btoa = require('btoa');
 
 module.exports = function(pg, conop, schemas){
 
+    var defaultFields = {
+	hash:{
+	    type:'varchar(31)'
+	},
+	xattrs:{
+	    type:'json',
+	    defval:{}
+	}
+    };
+
+
     pg.conop = conop;
     pg.schemas = schemas;
     
     pg.insert = function(schemaName, query, options, callback){
 	
-	var schema = schemas.db[schemaName];
+	var schema = schemas[schemaName];
 
 	var qreq = 'insert into '+schema.tableName+' (';
 	var valreq = ') values (';
@@ -96,7 +107,7 @@ module.exports = function(pg, conop, schemas){
 
     pg.batchInsert = function(schemaName, queryArray, options, callback){
 	
-	var schema = schemas.db[schemaName];
+	var schema = schemas[schemaName];
 
 	var qreq = 'insert into '+schema.tableName+' (';
 
@@ -145,7 +156,7 @@ module.exports = function(pg, conop, schemas){
 // if there's no json or xattrs, this should be done in one request
 // that would require me to know what I was doing with postgres tho!
 
-	var schema = schemas.db[schemaName];
+	var schema = schemas[schemaName];
 
 	var qreq = 'update '+schema.tableName+' set ';
 
@@ -244,45 +255,158 @@ module.exports = function(pg, conop, schemas){
 
 
     pg.read = function(schemaNameOrNames, query, options, callback){
+
+	if(schemaNameOrNames.constructor == Array){
 //-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
-// THIS IS WHERE TO PUT MULTISCHEMA (JOIN) READS
-// maybe move it somewhere else and just facade call it from here
+// JOIN READS
 //-----------------------------------------------------------------------------------------
 //
-//  ['schema1','schema2'], {schema1:{query}, schema2:{query} }, {returning:{schema1:{r}, schema2:{r} } }
+//  ['s1','s2'], { s1:{query}, s2:{query}, $on:['stmt'] },
+//  {schema1:{options}, schema2:{options} }
 //
-//  in the case there are multiple options for the join column based on the schema type
-//  or the join operator is not an equality
-//  an "on" clause must be specified in the options package
-//
- if(schemaNameOrNames.constructor == Array){
+// $on: [['s1','c1','op','s2','c2'],..]?
 
-     var schemae = schemaNameOrNames;//lazy
+// $on: [{s1:'col'||hash, s2:'col'||hash, $op: 'w/e' || '=' / '@>' }]
+// pgx would then have to either
+// guess = if the join type makes sense
+// guess @> or <@ if one is a [] from schemaType
+// if both are [], use the $op field
 
-// compute returning clauses
-     var rreqs = [];
+// some operators require bracketing of the second operand
+	    
+	    //   query should be split by schema
+	    //   select s1.returning,s2.returning from s1.tn join s2.tn on join-column1=join-column2
+	    //      where s1.where and s2.where limit # offset # orderby s2.col asc;
+	    //
+	    //   select s1.ret, s2.ret from s1.tn, s2.tn where (join clause) and (other where clauses)
+	    //
+	    //-----------------------------------------------------------------------------------------
 
-// these need prefices (join tableName as tableNameInstance) in case of multijoin to one table
-     for(var i=0; i<schemae.length; ++i) rreqs[i] = fmtret(options.returning[schemae[i]]);
+	    var schemae = schemaNameOrNames;//lazy... nice use of both plurals
 
 
-//   determine the join column for these two schema (if none, error!)
+	    var areq = 'select row_to_json(stat) from (';
+	    var breq = ') stat';
 
-// loop schema1.fields for a jointype of schema2, and schema2.fields for jointype of schema1
-// if unique, check on clause for operator
-// else check on clause for field and operator
+	    // compute returning clauses
+	    var rreq = '';
+	    
+	    // fmt ret with tablePrefix
+	    // as schemaName__whatever
+
+// if returning is empty, replace with everything
+
+	    for(var i=0; i<schemae.length; ++i)
+		rreq += fmtret(options[schemae[i]].returning, schemae[i], true) + ',';
+
+	    rreq = rreq.slice(0,-1);
 
 
-//   query should be split by schema
-//   select s1.returning,s2.returning from s1.tn join s2.tn on join-column1=join-column2
-//      where s1.where and s2.where limit # offset # orderby s2.col asc;
-//-----------------------------------------------------------------------------------------
-}
+	    var supers, subs;
+
+	    var jreq = ' where ';
+//	    for(var i=0; i<query.$on.length; ++i){
+		
+// this only works for one array joins
+// with one $on statement
+	    for(var ff in query.$on){
+
+		if(!(query.$on[ff] in schemas[ff].fields)){
+// hash?		    
+		    subs = ff;
+
+		}else if(schemas[ff].fields[query.$on[ff]].type.indexOf('[]') !== -1){
+		    // superdoc
+		    supers = ff;
+		}else{
+		    subs = ff;
+		}
+	    }
+
+	    jreq += schemas[subs].tableName + '.' + query.$on[subs] + ' = any (';
+	    jreq += schemas[supers].tableName + '.' + query.$on[supers] + ') and ';
+
+	    //jreq += query.$on[i] + ' and ';
+//	    }
+
+// loop $on:[]
+// each will contain
+// s1:'col', s2:true // where true indicates to use the hash
+// OR
+// s1:'col', s2:'col' // if one or two of the cols is a []
+// OR
+// s1:'col', s2:'col', subdoc:'s1'// which will subtend s1 into s2 at the join point
+
+
+	    for(var i=0; i<schemae.length; ++i) jreq = fmtwhere(schemae[i], query[schemae[i]], jreq);
+
+
+	    var qreq = 'select '+rreq+' from ';
+	    for(var i=0; i<schemae.length; ++i) qreq += schemas[schemae[i]].tableName + ',';
+	    qreq = qreq.slice(0,-1);
+
+// impl oreq here... reimp as fmtoreq
+
+	    var treq = areq + qreq + jreq + breq + ';';
+
+	    if(options.stringOnly) return callback(null, treq);
+
+
+	    pg.connect(conop, function(err, client, done) {
+		if(err) return res.json({err:err});
+		client.query(treq, function(err, result) {
+		    if(err) console.log(err);
+		    done();
+
+		    if(!result.rows) return callback(err, []);
+		    if(!result.rows.length) return callback(err, []);
+		    
+		    for(var i=result.rows.length; i-->0;)
+			result.rows[i] = result.rows[i].row_to_json;
+
+   // flatten xattrs?
+		    
+// for simple join reads, take the sub doc and json it in where the hash was
+
+// for array reads, do the same thing but into the array
+
+		    // make an array of the subdocs
+		    // take one example of the superdoc sans prefices
+		    // replace the array with the subdocarray
+
+		    var subdocs = [];
+
+		    for(var i=result.rows.length; i-->0;){
+			var pack = {};
+			for(var ff in result.rows[i])
+			    if(ff.indexOf(subs) === 0)
+				pack[ff.split('__')[1]] = result.rows[i][ff];
+
+			subdocs.push(pack);
+		    }
+
+		    var superdoc = {};
+
+		    for(var ff in result.rows[0])
+			if(ff.indexOf(supers === 0))
+			   superdoc[ff.split('__')[1]] = result.rows[0][ff];
+		    
+		    superdoc[query.$on[supers]] = subdocs;
+			   
+
+// for double array reads? json the sub docs into the containER array doc
+
+		    return callback(err, superdoc);
+
+		});
+	    });
+
+	    return;
+	}
 
 	var schemaName;
 	if(typeof schemaNameOrNames === 'string') schemaName = schemaNameOrNames;
-	var schema = schemas.db[schemaName];
+	var schema = schemas[schemaName];
 
 	var rreq = fmtret(options.returning);
 
@@ -386,14 +510,14 @@ module.exports = function(pg, conop, schemas){
 	    if(err) return errcallback({err:err});
 
 	    var rs = 0;
-	    for(var tt in schemas.db) ++rs;
+	    for(var tt in schemas) ++rs;
 	    var rc = rs;
 
 	    var errs = [];
 	    
-	    for(var tt in schemas.db){
+	    for(var tt in schemas){
 		(function(sn){// sn === tt
-		    var sc = schemas.db[sn];
+		    var sc = schemas[sn];
 
 		    client.query('select * from '+sc.tableName, function(selerr, oldrowres) {
 			if(selerr && options.throwSelect) errcallback({select_err:selerr});
@@ -407,8 +531,8 @@ module.exports = function(pg, conop, schemas){
 			    for(var ff in sc.fields){
 				qq += ff +' '+ sc.fields[ff].type+',';
 			    }
-			    for(var ff in schemas.defaultFields){
-				qq += sn+'_'+ff +' '+ schemas.defaultFields[ff].type+',';
+			    for(var ff in defaultFields){
+				qq += sn+'_'+ff +' '+ defaultFields[ff].type+',';
 			    }
 			    qq = qq.slice(0,-1) + ');';
 
@@ -425,7 +549,7 @@ module.exports = function(pg, conop, schemas){
 					done();
 		// think about returning successes and errors
 					if(errs.length) return errcallback({errs:errs});
-					return callback({db:schemas.db});
+					return callback({db:schemas});
 				    }
 				    for(var i=oldrows.length; i-->0;){
 					(function(d){
@@ -439,7 +563,7 @@ module.exports = function(pg, conop, schemas){
 						    done();
 	// think about returning successes and errors
 						    if(errs.length) return errcallback({errs:errs});
-						    return callback({db:schemas.db});
+						    return callback({db:schemas});
 						}
 					    });
 					})(oldrows[i]);
@@ -455,10 +579,12 @@ module.exports = function(pg, conop, schemas){
 
     return pg;
 
-function fmtwhere(schemaName, query){
+function fmtwhere(schemaName, query, init){
 
-    var schema = schemas.db[schemaName];
-    var wreq = ' where ';
+    if(JSON.stringify(query) === '{}') return init||'';
+
+    var schema = schemas[schemaName];
+    var wreq = init || ' where ';
 
     for(var ff in query){
 	if(ff in schema.fields){
@@ -526,7 +652,7 @@ function fmtwhere(schemaName, query){
 			    var ss = query[ff][kk].schema;
 
 			    var ssf = query[ff][kk].field || ss+'_hash';
-			    var sst = schemas.db[ss].tableName;
+			    var sst = schemas[ss].tableName;
 
 			    wreq += ff + ' = any (select ' + ssf + ' from '+ sst +
 				fmtwhere(ss, query[ff][kk].where) + ') and ';
@@ -570,7 +696,7 @@ function fmtwhere(schemaName, query){
 			    var ss = query[ff][kk].schema;
 
 			    var ssf = query[ff][kk].field || ss+'_hash';
-			    var sst = schemas.db[ss].tableName;
+			    var sst = schemas[ss].tableName;
 
 			    wreq += ff + ' = any (select ' + ssf + ' from '+ sst +
 				fmtwhere(ss, query[ff][kk].where) + ') and ';
@@ -611,18 +737,29 @@ function dmfig(s){
     return '$'+ns+'$';
 }
 
-function fmtret(rop, schemaName){
-    var rreq = '*';
+function fmtret(rop, schemaName, withas){
+
+    var prefix;
+    if(schemaName) prefix = schemas[schemaName].tableName;
+    var pfx = prefix || '';
+    if(pfx) pfx += '.';
+
+    var rreq = pfx+'*';
+
     if(rop) if(rop.length){
 	if(typeof rop === 'string'){
 	    // check if is in schema, if not prepend schemaName_xattrs->
 
-	    rreq = rop;
+	    rreq = pfx + rop;
 	}else if(rop.constructor == Array){
 	    rreq = '';
 	    for(var i=0; i<rop.length; i++){
 		// check if is in schema, if not prepend schemaName_xattrs->
-		rreq += rop[i] +',';
+		rreq += pfx + rop[i];
+
+		if(withas) rreq += ' as ' + schemaName + '__' + rop[i];
+
+		rreq +=  ',';
 	    }
 	    rreq = rreq.slice(0,-1);
 	    rreq += '';
