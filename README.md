@@ -362,7 +362,7 @@ docs:
 
 
 
-todo (testing and docs)
+todo (testing)
 ---
 
 batchInsert test verify totals
@@ -487,6 +487,8 @@ $select sub query (also test)
 big doc on schemas
 
 big doc on queries
+
+join reads, + test
 
 --------
 

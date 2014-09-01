@@ -295,50 +295,78 @@ module.exports = function(pg, conop, schemas){
 	    // as schemaName__whatever
 
 // if returning is empty, replace with everything
+// always return the hashes
 
 	    for(var i=0; i<schemae.length; ++i)
 		rreq += fmtret(options[schemae[i]].returning, schemae[i], true) + ',';
 
 	    rreq = rreq.slice(0,-1);
 
-
-	    var supers, subs;
+	    var roots = schemae[0]; // document this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	    var jreq = ' where ';
-//	    for(var i=0; i<query.$on.length; ++i){
+
+	    // make the return tree structure
+
+	    for(var i=query.$on.length; i-->0;){
+		for(var ff in query.$on[i]){
+
+		    if(ff === roots){
+			query.$on[i].supers = ff;
+		    }else if((schemas[ff].fields[query.$on[i][ff]]||{type:''})
+			     .type.indexOf('[]') !== -1){
+			query.$on[i].supers = ff;
+
+		    }else{
+			query.$on[i].subs = ff;
+		    }
+		}
+	    }
+	    
+	    var tree = {};
+	    tree[roots] = {};
+
+	    // this is depth first recursion.
+	    var placeontree = function(ptr, tilt){
 		
-// this only works for one array joins
-// with one $on statement
-	    for(var ff in query.$on){
+		var keys = Object.keys(ptr);
 
-		if(!(query.$on[ff] in schemas[ff].fields)){
-// hash?		    
-		    subs = ff;
+		for(var j=keys.length; j-->0;){
 
-		}else if(schemas[ff].fields[query.$on[ff]].type.indexOf('[]') !== -1){
-		    // superdoc
-		    supers = ff;
-		}else{
-		    subs = ff;
+		    if(keys[j] === tilt.supers){
+			// put tilt[tilt.subs] as the key, tilt.subs as the type
+			if(!ptr[tilt.supers]) ptr[tilt.supers] = {};
+			ptr[tilt.supers][tilt[tilt.supers]] = {};
+			ptr[tilt.supers][tilt[tilt.supers]][tilt.subs] = {};
+			return true;
+
+		    }else if(!Object.keys(ptr[ keys[j] ]).length){
+			continue;
+
+		    }else{
+			if(placeontree(ptr[keys[j]][Object.keys(ptr[keys[j]])[0]], tilt))
+			    return true;
+		    }
+		}
+		return false;
+	    };
+
+	    var placed = 0;
+	    for(var it = 0; placed < query.$on.length; it = (++it) % query.$on.length){
+		if(query.$on[it].placed) continue;
+
+		if(placeontree(tree, query.$on[it])){
+		    query.$on[it].placed = true;
+		    placed++;
 		}
 	    }
 
-	    jreq += schemas[subs].tableName + '.' + query.$on[subs] + ' = any (';
-	    jreq += schemas[supers].tableName + '.' + query.$on[supers] + ') and ';
-
-	    //jreq += query.$on[i] + ' and ';
-//	    }
-
-// loop $on:[]
-// each will contain
-// s1:'col', s2:true // where true indicates to use the hash
-// OR
-// s1:'col', s2:'col' // if one or two of the cols is a []
-// OR
-// s1:'col', s2:'col', subdoc:'s1'// which will subtend s1 into s2 at the join point
+	    // finish the sql, ...
 
 
-	    for(var i=0; i<schemae.length; ++i) jreq = fmtwhere(schemae[i], query[schemae[i]], jreq);
+	    for(var i=0; i<schemae.length; ++i)
+		if(query[schemae[i]])
+		    jreq = fmtwhere(schemae[i], query[schemae[i]], jreq);
 
 
 	    var qreq = 'select '+rreq+' from ';
@@ -364,6 +392,8 @@ module.exports = function(pg, conop, schemas){
 		    for(var i=result.rows.length; i-->0;)
 			result.rows[i] = result.rows[i].row_to_json;
 
+
+		    return callback(err, {tree:tree, result:result.rows});
    // flatten xattrs?
 		    
 // for simple join reads, take the sub doc and json it in where the hash was
@@ -374,24 +404,34 @@ module.exports = function(pg, conop, schemas){
 		    // take one example of the superdoc sans prefices
 		    // replace the array with the subdocarray
 
-		    var subdocs = [];
+
+		    var subdocs = {};
 
 		    for(var i=result.rows.length; i-->0;){
 			var pack = {};
 			for(var ff in result.rows[i])
-			    if(ff.indexOf(subs) === 0)
-				pack[ff.split('__')[1]] = result.rows[i][ff];
+			    if(!(ff.split('__')[0] in pack)) pack[ff.split('__')[0]] = {};
+			    if(roots.indexOf(ff.split('__')[0]) === -1)
+				pack[ff.split('__')[0]][ff.split('__')[1]] = result.rows[i][ff];
 
-			subdocs.push(pack);
+			for(var gg in pack){
+			    if(!(gg in subdocs)) subdocs[gg] = [];
+			    subdocs[gg].push(pack[gg]);
+			}
 		    }
 
 		    var superdoc = {};
 
+// this should compile an array of dissimilar root docs (by hash)
 		    for(var ff in result.rows[0])
-			if(ff.indexOf(supers === 0))
+			if(roots.indexOf(ff.split('__')) !== -1)
 			   superdoc[ff.split('__')[1]] = result.rows[0][ff];
 		    
-		    superdoc[query.$on[supers]] = subdocs;
+// superdoc holds the root doc, subdocs hold all subdocs, 
+
+
+		    for(var i=query.$on.length; i-->0;)
+			superdoc[query.$on[i][supers]] = subdocs;
 			   
 
 // for double array reads? json the sub docs into the containER array doc
