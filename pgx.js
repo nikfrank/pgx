@@ -362,7 +362,22 @@ module.exports = function(pg, conop, schemas){
 	    }
 
 	    // finish the sql, ...
+	    // now that we have the sub and super on each one, deciding on an op should be easy?
+	    for(var i=query.$on.length; i-->0;){
+		var q = query.$on[i];
 
+		// two options: = or = any (...)
+
+		if(schemas[q.supers].fields[q[q.supers]].type.indexOf('[]') !== -1){
+		    jreq += schemas[q.subs].tableName+'.'+q[q.subs]+
+			' = any ('+schemas[q.supers].tableName+'.'+q[q.supers]+') and ';
+
+		}else{
+		    jreq += schemas[q.subs].tableName+'.'+q[q.subs]+
+			' = '+schemas[q.supers].tableName+'.'+q[q.supers]+' and ';
+
+		}
+	    }
 
 	    for(var i=0; i<schemae.length; ++i)
 		if(query[schemae[i]])
@@ -386,58 +401,83 @@ module.exports = function(pg, conop, schemas){
 		    if(err) console.log(err);
 		    done();
 
-		    if(!result.rows) return callback(err, []);
-		    if(!result.rows.length) return callback(err, []);
+		    if(!result) return callback({err:err, sql:treq}, []);
+		    if(!result.rows) return callback({err:err, sql:treq}, []);
+		    if(!result.rows.length) return callback({err:err, sql:treq}, []);
 		    
 		    for(var i=result.rows.length; i-->0;)
 			result.rows[i] = result.rows[i].row_to_json;
 
 
-		    return callback(err, {tree:tree, result:result.rows});
+//		    return callback(err, {tree:tree, result:result.rows});
    // flatten xattrs?
 		    
-// for simple join reads, take the sub doc and json it in where the hash was
-
-// for array reads, do the same thing but into the array
-
 		    // make an array of the subdocs
-		    // take one example of the superdoc sans prefices
+		    // take one example of each superdoc sans prefices
 		    // replace the array with the subdocarray
 
 
-		    var subdocs = {};
+		    var superdocs = [];
+		    var sdi = {};
 
+// this should compile an array of dissimilar root docs (index by hash)
 		    for(var i=result.rows.length; i-->0;){
-			var pack = {};
+			var superdoc = {};
 			for(var ff in result.rows[i])
-			    if(!(ff.split('__')[0] in pack)) pack[ff.split('__')[0]] = {};
-			    if(roots.indexOf(ff.split('__')[0]) === -1)
-				pack[ff.split('__')[0]][ff.split('__')[1]] = result.rows[i][ff];
+			    if(roots.indexOf(ff.split('__')[0]) !== -1)
+				superdoc[ff.split('__')[1]] = result.rows[i][ff];
 
-			for(var gg in pack){
-			    if(!(gg in subdocs)) subdocs[gg] = [];
-			    subdocs[gg].push(pack[gg]);
+			if(superdoc[roots+'_hash'] in sdi) continue;
+			else{
+			    sdi[superdoc[roots+'_hash']] = superdocs.length;
+			    superdocs.push(superdoc);
 			}
 		    }
 
-		    var superdoc = {};
+		    for(var i=result.rows.length; i-->0;){
+			var pack = {};
+			for(var ff in result.rows[i]){
+			    if(!(ff.split('__')[0] in pack))
+				if(ff.split('__')[0] !== roots)
+				    pack[ff.split('__')[0]] = {};
+			    if(roots.indexOf(ff.split('__')[0]) === -1){
+				pack[ff.split('__')[0]][ff.split('__')[1]] = result.rows[i][ff];
+			    }
+			    else if(ff.split('__')[1] === roots+'_hash')
+				pack.$superhash = result.rows[i][ff];
+			}
+console.log(pack);
+			for(var gg in pack){
+			    if(gg === '$superhash') continue;
+			    // just push this onto the superdoc? for now. multidepth later
 
-// this should compile an array of dissimilar root docs (by hash)
-		    for(var ff in result.rows[0])
-			if(roots.indexOf(ff.split('__')) !== -1)
-			   superdoc[ff.split('__')[1]] = result.rows[0][ff];
-		    
-// superdoc holds the root doc, subdocs hold all subdocs, 
+			    // gg is the schema of the subdoc we're attaching here
+			    // find the key in tree[roots] whose key is gg
+
+			    var treekey;
+console.log(tree[roots], gg);
+			    for(var tf in tree[roots]){
+				if(Object.keys(tree[roots][tf])[0] === gg){
+				    treekey = tf;
+				    break;
+				}
+			    }
+// here check if the field in the root schema is an array
+			    if(schemas[roots].fields[treekey].type.indexOf('[]') === -1)
+				superdocs[sdi[pack.$superhash]][treekey] = pack[gg];
+			    else{
+				var iin = superdocs[sdi[pack.$superhash]][treekey]
+				    .indexOf(pack[gg][gg+'_hash']);
+				superdocs[sdi[pack.$superhash]][treekey][iin] = pack[gg];
+			    }
+//test!
+
+			}
 
 
-		    for(var i=query.$on.length; i-->0;)
-			superdoc[query.$on[i][supers]] = subdocs;
-			   
+		    }
 
-// for double array reads? json the sub docs into the containER array doc
-
-		    return callback(err, superdoc);
-
+		    return callback(err, superdocs);
 		});
 	    });
 
@@ -624,6 +664,7 @@ function fmtwhere(schemaName, query, init){
     if(JSON.stringify(query) === '{}') return init||'';
 
     var schema = schemas[schemaName];
+    var tt = schema.tableName+'.';
     var wreq = init || ' where ';
 
     for(var ff in query){
@@ -633,7 +674,7 @@ function fmtwhere(schemaName, query, init){
 		if(schema.fields[ff].type.indexOf('[]') === -1) continue;
 
 		// match the array?
-		wreq += ff + ' @> ARRAY[';
+		wreq += tt+ff + ' @> ARRAY[';
 		for(var i=query[ff].length; i-->0;){
 		    var dm = dmfig(query[ff][i]);
 		    wreq += dm + query[ff][i] + dm + ', ';
@@ -641,7 +682,7 @@ function fmtwhere(schemaName, query, init){
 		wreq = wreq.slice(0,-2);
 		wreq += ']::'+schema.fields[ff].type+' and '
 
-		wreq += ff + ' <@ ARRAY[';
+		wreq += tt+ff + ' <@ ARRAY[';
 		for(var i=query[ff].length; i-->0;){
 		    var dm = dmfig(query[ff][i]);
 		    wreq += dm + query[ff][i] + dm + ', ';
@@ -670,7 +711,7 @@ function fmtwhere(schemaName, query, init){
 			    if(query[ff][kk].constructor != Array) continue;
 
 			    // where value in [val,..]
-			    wreq += ff + ' = any (ARRAY[';
+			    wreq += tt+ff + ' = any (ARRAY[';
 			    for(var i=query[ff][kk].length; i-->0;){
 				var dm = dmfig(query[ff][kk][i]);
 				wreq += dm + query[ff][kk][i] + dm + ', ';
@@ -682,7 +723,7 @@ function fmtwhere(schemaName, query, init){
 			    if(schema.fields[ff].type.indexOf('[]') === -1) continue;
 
 			    var dm = dmfig(query[ff][kk]);
-			    wreq += dm + query[ff][kk] + dm + ' = any ('+ff+') and ';
+			    wreq += dm + query[ff][kk] + dm + ' = any ('+tt+ff+') and ';
 
 			}else if(kk === '$select'){
 			    // this is probably a bad idea
@@ -694,19 +735,19 @@ function fmtwhere(schemaName, query, init){
 			    var ssf = query[ff][kk].field || ss+'_hash';
 			    var sst = schemas[ss].tableName;
 
-			    wreq += ff + ' = any (select ' + ssf + ' from '+ sst +
+			    wreq += tt+ff + ' = any (select ' + ssf + ' from '+ sst +
 				fmtwhere(ss, query[ff][kk].where) + ') and ';
 			}
 		    }else{
 			var dmk = dmfig(kk);
 			var dm = dmfig(query[ff][kk]);
-			wreq += ff + '->>' + dmk + kk + dmk + '=' + dm + query[ff][kk] + dm + ' and ';
+			wreq += tt+ff+'->>' + dmk + kk + dmk + '=' + dm + query[ff][kk] + dm + ' and ';
 			//formatas?
 		    }
 		}
 	    }else{
 		var dm = dmfig(query[ff]);
-		wreq += ff + '=' + formatas(query[ff], schema.fields[ff].type, dm) + ' and ';
+		wreq += tt+ff + '=' + formatas(query[ff], schema.fields[ff].type, dm) + ' and ';
 	    }
 	}
 	else if(ff === schemaName+'_hash'){
@@ -718,7 +759,7 @@ function fmtwhere(schemaName, query, init){
 			    if(query[ff][kk].constructor != Array) continue;
 
 			    // where value in [val,..]
-			    wreq += ff + ' = any (ARRAY[';
+			    wreq += tt+ff + ' = any (ARRAY[';
 			    for(var i=query[ff][kk].length; i-->0;){
 				var dm = dmfig(query[ff][kk][i]);
 				wreq += dm + query[ff][kk][i] + dm + ', ';
@@ -738,14 +779,14 @@ function fmtwhere(schemaName, query, init){
 			    var ssf = query[ff][kk].field || ss+'_hash';
 			    var sst = schemas[ss].tableName;
 
-			    wreq += ff + ' = any (select ' + ssf + ' from '+ sst +
+			    wreq += tt+ff + ' = any (select ' + ssf + ' from '+ sst +
 				fmtwhere(ss, query[ff][kk].where) + ') and ';
 			}
 		    }
 		}
 	    }else{
 		var dm = dmfig(query[ff]);
-		wreq += ff + '=' + formatas(query[ff], 'varchar(31)', dm) + ' and ';
+		wreq += tt+ff + '=' + formatas(query[ff], 'varchar(31)', dm) + ' and ';
 	    }
 	}
 	// xattr reads
@@ -753,7 +794,7 @@ function fmtwhere(schemaName, query, init){
 	    var dmk = dmfig(ff);
 	    var dm = dmfig(query[ff]);
 
-	    wreq += schemaName + '_xattrs->>' + dmk + ff + dmk + '=' + dm + query[ff] + dm + ' and '
+	    wreq += tt+schemaName + '_xattrs->>' + dmk + ff + dmk + '=' + dm + query[ff] + dm + ' and '
 	}
     }
     
