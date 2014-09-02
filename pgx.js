@@ -367,7 +367,6 @@ module.exports = function(pg, conop, schemas){
 		var q = query.$on[i];
 
 		// two options: = or = any (...)
-
 		if(schemas[q.supers].fields[q[q.supers]].type.indexOf('[]') !== -1){
 		    jreq += schemas[q.subs].tableName+'.'+q[q.subs]+
 			' = any ('+schemas[q.supers].tableName+'.'+q[q.supers]+') and ';
@@ -401,9 +400,9 @@ module.exports = function(pg, conop, schemas){
 		    if(err) console.log(err);
 		    done();
 
-		    if(!result) return callback({err:err, sql:treq}, []);
-		    if(!result.rows) return callback({err:err, sql:treq}, []);
-		    if(!result.rows.length) return callback({err:err, sql:treq}, []);
+		    if(!result) return callback(err?{err:err, sql:treq}:undefined, []);
+		    if(!result.rows) return callback(err?{err:err, sql:treq}:undefined, []);
+		    if(!result.rows.length) return callback(err?{err:err, sql:treq}:undefined, []);
 		    
 		    for(var i=result.rows.length; i-->0;)
 			result.rows[i] = result.rows[i].row_to_json;
@@ -446,7 +445,6 @@ module.exports = function(pg, conop, schemas){
 			    else if(ff.split('__')[1] === roots+'_hash')
 				pack.$superhash = result.rows[i][ff];
 			}
-console.log(pack);
 			for(var gg in pack){
 			    if(gg === '$superhash') continue;
 			    // just push this onto the superdoc? for now. multidepth later
@@ -455,13 +453,13 @@ console.log(pack);
 			    // find the key in tree[roots] whose key is gg
 
 			    var treekey;
-console.log(tree[roots], gg);
 			    for(var tf in tree[roots]){
 				if(Object.keys(tree[roots][tf])[0] === gg){
 				    treekey = tf;
 				    break;
 				}
 			    }
+
 // here check if the field in the root schema is an array
 			    if(schemas[roots].fields[treekey].type.indexOf('[]') === -1)
 				superdocs[sdi[pack.$superhash]][treekey] = pack[gg];
@@ -878,8 +876,9 @@ function formatas(data, type, dm, old){
     else if(type === 'timestamp'){
 	if(data === 'now()') return (dm + (new Date()).toISOString() + dm);
 	else{
-	    console.log((dm + (new Date(data[ff])).toISOString() + dm));
-	    return (dm + (new Date(data[ff])).toISOString() + dm);
+	    console.log(data);
+	    console.log((dm + (new Date(data)).toISOString() + dm));
+	    return (dm + (new Date(data)).toISOString() + dm);
 	}
     }
     //json
