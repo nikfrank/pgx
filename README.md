@@ -379,26 +379,26 @@ upsert (array of objects updated)
 
 read (array of objects read)
 
-...
-
-
-empty boot db
-
 insert some records
 
 read those records
 
 update the records
 
+...
+
+empty boot db
+
 batch insert some records --> need in testdata.js
 
-json-depth read
+json-depth read ((?))
 
-array $contains
+array $contains item, array
 
-((join read))
+join read
 
 limit & sorted reads
+((, on join reads))
 
 ((erase some records))
 
@@ -407,6 +407,8 @@ limit & sorted reads
 ----------------
 todo (code)
 ----------------
+
+date comparisons
 
 array push if not contains
 

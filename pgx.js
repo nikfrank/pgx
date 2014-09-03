@@ -557,13 +557,30 @@ module.exports = function(pg, conop, schemas){
     };
 
 
-    pg.erase = function(schemaNameOrNames, query, options, callback){
+    pg.erase = function(schemaName, query, options, callback){
+
+	var schema = schemas[schemaName];
+
 	if(options.deleteLinked){
 	    //delete all autojoined records too
 	    return callback(undefined, undefined);
 	}
 	// else, simply erase those records fields
-	var ereq = '';
+	var ereq = 'delete from ' + schema.tableName;
+
+ 	var wreq = fmtwhere(schemaName, query);
+
+	var treq = ereq + wreq + ';';
+
+	pg.connect(conop, function(err, client, done) {
+	    if(err) return res.json({err:err});
+	    client.query(treq, function(err, result) {
+		if(err) console.log(err);
+		done();
+
+		return callback(err, result);
+	    });
+	});
 
     };
 
@@ -854,7 +871,8 @@ function formatas(data, type, dm, old){
     //string
     if(type.indexOf('varchar') !== -1){ // grab varchar \d+ length and truncate?
 	//if empty string put null
-	if((typeof data === 'undefined')||((JSON.stringify(data) === 'null')&&(data !== 'null'))) return 'null';
+	if((typeof data === 'undefined')||((JSON.stringify(data) === 'null')&&(data !== 'null')))
+	    return 'null';
 	else if(!data.length) return 'null';
 
 	if(type.indexOf('[')===-1) return (dm + data + dm);
