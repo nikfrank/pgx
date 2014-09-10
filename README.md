@@ -102,7 +102,7 @@ input has format {where:{key:val,..}, data/query:{key:val,..}}
 
     pg.boot(options, callback, errcallback)
 
-    (( pg.erase(schemaName, query, options, callback(err, data)) ))
+    pg.erase(schemaName, query, options, callback(err, data))
     (( pg.schemaVerify() ))
 
 on the original pg object. unconventional? probably.
@@ -120,6 +120,60 @@ basically it feels like MongoDB where you are unconstrained by your schema
 
 except that the returning clause (in options) doesn't work for extended fields yet.
 (listed as "json depth read" in todo code)
+
+
+examples
+=======
+
+simple read
+
+    pgx.read('topic', {topic_hash: req.body.topic_hash}, {}, function(err, response){
+        if(err) return res.status(400).json(err);
+        return res.json(response);
+    });
+
+multischema read
+
+    pgx.read(['lesson', 'topic'], {
+        topic:{topic_hash:req.body.topic_hash},
+        lesson:{topic:req.body.topic_hash},
+        $on:[{topic:'topic_hash', lesson:'topic'}]
+    
+    }, {
+        topic:{returning:['topic_hash', 'name', 'url']},
+        lesson:{returning:['lesson_hash', 'name', 'topic', 'commit_hash']}
+    
+    }, function(err, response){
+        // response contains lessons whose topic field matched req.body.topic_hash
+        // with the topic grafted in place of the hash (which is stored in it's "topic" field)
+        if(err) return res.status(400).json(err);
+        return res.json(response);
+    });
+
+insert
+
+    pgx.insert('msg', {
+        text: req.body.text,
+        thread: req.body.thread,
+        frm: req.session.usr_hash,
+        rcp: req.body.rcp
+
+    }, {}, function(err, response){
+        if(err) return res.status(400).json(err);
+        return res.json(response);
+    });
+
+
+update
+
+    pgx.update('usr', {
+        where:{usr_hash:req.body.usr_hash},
+        data:{teaching:req.body.teaching}
+
+    }, {}, function(err, response){
+        return res.json(response);
+    });
+
 
 
 options
@@ -251,14 +305,14 @@ available on: boot
 deleteLinked
 ---
 
-unimplemented, as erase is unimplemented
+unimplemented
 
     {deleteLinked: false}
 
 in order to delete records linked by the hashing system
 
 
-available on: (erase)
+available on: erase
 
 
 ---
@@ -330,7 +384,7 @@ docs:
 erase
 ---
 
-dev: false
+dev: true
 
 tests: uidquery -> erase
 
@@ -397,10 +451,12 @@ array $contains item, array
 
 join read
 
+$union, other $whatevers
+
 limit & sorted reads
 ((, on join reads))
 
-((erase some records))
+erase some records
 
 ((verifySchema))
 
@@ -415,6 +471,12 @@ array push if not contains
 returning clause from [within json, xattrs]
 
 where clause in xattrs/json (json depth reads)
+
+options on join reads
+
+backpointer arrays on join reads (grafting subdocs where subdoc points to root hash)
+
+depth joins
 
 schema verify schema cannot have anything called "group" or "user" "from" "to" or starting with a $
 (basically any postgres keyword is not allowed for schemaNames or tableNames
@@ -492,6 +554,8 @@ big doc on schemas
 big doc on queries
 
 join reads, + test
+
+$union
 
 --------
 

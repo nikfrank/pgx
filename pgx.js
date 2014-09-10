@@ -181,7 +181,7 @@ module.exports = function(pg, conop, schemas){
 		if(!sres.rows.length){
 		    done();
 
-		    if(options.noinsert){ // document this
+		    if(options.noinsert){
 			return callback({err:'noent', where:where});
 		    }
 
@@ -199,6 +199,7 @@ module.exports = function(pg, conop, schemas){
 		    if(ff === schemaName+'_xattrs') continue;
 		    if(!(ff in schema.fields)) continue;
 		    qreq += ff + '=';
+
 		    var dm = dmfig(query[ff]);
 		    var old;
 
@@ -226,6 +227,8 @@ module.exports = function(pg, conop, schemas){
 
 		var rreq = fmtret(options.returning);
 		var treq = qreq + wreq + ' returning '+rreq+';';
+
+		if(options.stringOnly) return callback(undefined, treq);
 
 		client.query(treq, function(ierr, ires){
 		    var ep;
@@ -380,8 +383,9 @@ module.exports = function(pg, conop, schemas){
 
 	    for(var i=0; i<schemae.length; ++i)
 		if(query[schemae[i]])
-		    jreq = fmtwhere(schemae[i], query[schemae[i]], jreq);
+		    jreq = fmtwhere(schemae[i], query[schemae[i]], jreq) + ' and ';
 
+	    if(jreq.substr(-4,4) === 'and ') jreq = jreq.slice(0,-4);
 
 	    var qreq = 'select '+rreq+' from ';
 	    for(var i=0; i<schemae.length; ++i) qreq += schemas[schemae[i]].tableName + ',';
@@ -494,7 +498,7 @@ module.exports = function(pg, conop, schemas){
 	    var areq = 'select row_to_json(stat) from (';
 	    var breq = ') stat';
 	}
-
+	
 	var qreq = 'select '+rreq+' from '+schema.tableName;
 	var wreq = fmtwhere(schemaName, query);
 
