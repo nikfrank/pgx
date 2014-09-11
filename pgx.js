@@ -130,6 +130,7 @@ module.exports = function(pg, conop, schemas){
 
 		client.query(treq, function(ierr, ires){
 		    done();
+// clean up xattrs
 		    return callback(ierr, (ires||{rows:[]}).rows);
 		});
 	    }); 
@@ -613,16 +614,25 @@ module.exports = function(pg, conop, schemas){
 	    var rc = rs;
 
 	    var errs = [];
-	    
+	    var suss = [];
+    
 	    for(var tt in schemas){
 		(function(sn){// sn === tt
 		    var sc = schemas[sn];
 
-		    client.query('select * from '+sc.tableName, function(selerr, oldrowres) {
+// this needs to be rewritten
+// read data, put a record in, drop table, maps data, reinsert data
+
+
+		    client.query('select * from '+sc.tableName+';', function(selerr, oldrowres) {
 			if(selerr && options.throwSelect) errcallback({select_err:selerr});
-			client.query('drop table '+sc.tableName, function(drerr, result){
-			    if(drerr && options.throwDrop) errcallback({drop_err:drerr});
-			    
+			client.query('drop table if exists '+sc.tableName+';', function(drerr, result){
+			    if(drerr && options.throwDrop) errs.push({
+				drop_err:drerr,
+				q:'drop table '+sc.tableName+';'
+			    });
+			    suss.push({res:result, schema:sc.tableName});
+
 			    var oldrows = (oldrowres||{rows:[]}).rows;
 			    if(options.empty) oldrows = [];
 			    
@@ -647,7 +657,7 @@ module.exports = function(pg, conop, schemas){
 				    if(!rem) if(!--rc){
 					done();
 		// think about returning successes and errors
-					if(errs.length) return errcallback({errs:errs});
+					if(errs.length) return errcallback({errs:errs, suss:suss});
 					return callback({db:schemas});
 				    }
 				    for(var i=oldrows.length; i-->0;){
@@ -661,7 +671,9 @@ module.exports = function(pg, conop, schemas){
 						if(!--rem) if(!--rc){
 						    done();
 	// think about returning successes and errors
-						    if(errs.length) return errcallback({errs:errs});
+						    if(errs.length) return errcallback({
+							errs:errs, suss:suss
+						    });
 						    return callback({db:schemas});
 						}
 					    });
