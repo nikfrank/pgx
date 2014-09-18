@@ -83,6 +83,7 @@ module.exports = function(pg, conop, schemas){
 	var treq = qreq + valreq + ') returning '+rreq+';';
 
 	if(options.stringOnly) return callback(undefined, treq);
+	if(options.stringSync) return treq;
 
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return callback({connection_err:err});
@@ -609,83 +610,73 @@ module.exports = function(pg, conop, schemas){
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return errcallback({err:err});
 
-	    var rs = 0;
-	    for(var tt in schemas) ++rs;
-	    var rc = rs;
+	    // pull all old data at once
+	    var selt = 'select array_to_json(';
+	    for(var ss in schemas) selt += '(select array_agg(row_to_json('+schemas[ss].tableName+')) from '+schemas[ss].tableName+') || ';
+	    selt = selt.slice(0,-3) + ');';
 
-	    var errs = [];
-	    var suss = [];
-    
-	    for(var tt in schemas){
-		(function(sn){// sn === tt
-		    var sc = schemas[sn];
+	    client.query(selt, function(selerr, oldrows){
+		var datas = {};
+		for(var ss in schemas) datas[ss] = [];
 
-// this needs to be rewritten
-// read data, put a record in, drop table, maps data, reinsert data
+		for(var i=oldrows.length; i-->0;){
+		    for(var ss in schemas){
+			if(ss+'_hash' in oldrows[i]){
+			    datas[ss].push(oldrows[i]);
+			    break;
+			}
+		    }
+		}
 
+		var inst = '';
+		var drot = '';
 
-		    client.query('select * from '+sc.tableName+';', function(selerr, oldrowres) {
-			if(selerr && options.throwSelect) errcallback({select_err:selerr});
-			client.query('drop table if exists '+sc.tableName+';', function(drerr, result){
-			    if(drerr && options.throwDrop) errs.push({
-				drop_err:drerr,
-				q:'drop table '+sc.tableName+';'
-			    });
-			    suss.push({res:result, schema:sc.tableName});
+		for(var ss in schemas){
+		    if(!datas[ss].length){
+			//append to insert statement a nully row
+			// call insert stringOnly
+			var pack = {};
+			for(var ff in schemas[ss].fields) pack[ff] = null;
+			pack[ss+'_hash'] = null;
 
-			    var oldrows = (oldrowres||{rows:[]}).rows;
-			    if(options.empty) oldrows = [];
-			    
-			    var qq = 'create table if not exists '+sc.tableName+' (';
-			    for(var ff in sc.fields){
-				qq += ff +' '+ sc.fields[ff].type+',';
-			    }
-			    for(var ff in defaultFields){
-				qq += sn+'_'+ff +' '+ defaultFields[ff].type+',';
-			    }
-			    qq = qq.slice(0,-1) + ');';
+			inst += pg.insert(ss, pack, {stringSync:true});
+		    }
+		    // append drop statement
+		    drot += 'drop table if exists '+ss.tableName+';';
+		}
 
-			    // make the request
-			    (function(qu, oldrows){
-				client.query(qu, function(err, result) {
-				    if(err){
-					errs.push({err:err, query:qu});
-					console.log(err);
-				    }
-				    var rem = oldrows.length;
+		client.query(inst+drot, function(drerr, drpon){
+		    // create new tables
+		    var crst = '';
 
-				    if(!rem) if(!--rc){
-					done();
-		// think about returning successes and errors
-					if(errs.length) return errcallback({errs:errs, suss:suss});
-					return callback({db:schemas});
-				    }
-				    for(var i=oldrows.length; i-->0;){
-					(function(d){
-					    pg.insert(sn, d, {}, function(err, ires){
-						if(err){
-						    errs.push({err:err});
-						    console.log(err);
-						}
-						//count?
-						if(!--rem) if(!--rc){
-						    done();
-	// think about returning successes and errors
-						    if(errs.length) return errcallback({
-							errs:errs, suss:suss
-						    });
-						    return callback({db:schemas});
-						}
-					    });
-					})(oldrows[i]);
-				    }
-				});
-			    })(qq, oldrows);
-			})
+		    for(var ss in schemas){
+			var qq = 'create table if not exists '+schemas[ss].tableName+' (';
+			for(var ff in schemas[ss].fields) qq += ff+' '+schemas[ss].fields[ff].type+',';
+			for(var ff in defaultFields) qq += ss+'_'+ff +' '+ defaultFields[ff].type+',';
+			qq = qq.slice(0,-1) + ');';
+			crst += qq;
+		    }
+
+		    client.query(crst, function(crerr, crpon){
+			// per schema, if map function defined in query - map data
+			if(options.maps) for(var ss in schemas)
+			    if(options.maps[ss]) datas[ss] = datas[ss].map(options.maps[ss]);
+			
+			// stitch together insertBatch strings
+			var bist = '';
+
+			for(var ss in schemas) for(var i=datas[ss].length; i-->0;)
+			    if(datas[ss][i][ss+'_hash'] !== null)
+				bist += pg.insert(ss, datas[ss][i], {stringSync:true});
+			
+			client.query(bist, function(bierr, bipon){
+			    done();
+			    return callback(bierr, {res:bipon, schemas:schemas});
+			});
 		    });
-		})(tt);
-	    }
-	});
+		});
+	    });
+	}); 
     };
 
     return pg;
