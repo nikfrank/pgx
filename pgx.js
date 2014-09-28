@@ -637,18 +637,14 @@ module.exports = function(pg, conop, schemas){
 		for(var ss in schemas){
 		    if(!datas[ss].length){
 			//append to insert statement a nully row
-			// call insert stringOnly
-			var pack = {};
-			for(var ff in schemas[ss].fields) pack[ff] = null;
-			pack[ss+'_hash'] = null;
-
-			inst += pg.insert(ss, pack, {stringSync:true});
+			inst += 'insert into '+schemas[ss].tableName+' ('+ss+'_hash) values ($$whatever$$);'
 		    }
 		    // append drop statement
-		    drot += 'drop table if exists '+ss.tableName+';';
+		    drot += 'drop table if exists '+schemas[ss].tableName+';';
 		}
 
 		client.query(inst+drot, function(drerr, drpon){
+console.log(drerr, drpon, drot);
 		    // create new tables
 		    var crst = '';
 
