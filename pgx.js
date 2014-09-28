@@ -539,7 +539,7 @@ module.exports = function(pg, conop, schemas){
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return res.json({err:err});
 	    client.query(treq, function(err, result) {
-		if(err) console.log(err);
+		if(err) return callback(err);
 		done();
 
 		if(rreq !== '*'){
@@ -615,11 +615,14 @@ module.exports = function(pg, conop, schemas){
 	    for(var ss in schemas) selt += '(select array_agg(row_to_json('+schemas[ss].tableName+')) from '+schemas[ss].tableName+') || ';
 	    selt = selt.slice(0,-3) + ');';
 
+	    if(options.empty) selt = '';
+
 	    client.query(selt, function(selerr, oldrows){
+		if(selerr) return errcallback(selerr);
 		var datas = {};
 		for(var ss in schemas) datas[ss] = [];
 
-		for(var i=oldrows.length; i-->0;){
+		for(var i=(oldrows||[]).length; i-->0;){
 		    for(var ss in schemas){
 			if(ss+'_hash' in oldrows[i]){
 			    datas[ss].push(oldrows[i]);
@@ -656,9 +659,18 @@ module.exports = function(pg, conop, schemas){
 			qq = qq.slice(0,-1) + ');';
 			crst += qq;
 		    }
+		    if(options.createString){
+			done();
+			return callback(crst);
+		    }
 
 		    client.query(crst, function(crerr, crpon){
 			// per schema, if map function defined in query - map data
+			if(options.empty){
+			    done();
+			    return callback({schemas:schemas});
+			}
+
 			if(options.maps) for(var ss in schemas)
 			    if(options.maps[ss]) datas[ss] = datas[ss].map(options.maps[ss]);
 			
@@ -671,7 +683,7 @@ module.exports = function(pg, conop, schemas){
 			
 			client.query(bist, function(bierr, bipon){
 			    done();
-			    return callback(bierr, {res:bipon, schemas:schemas});
+			    return callback({res:bipon, schemas:schemas});
 			});
 		    });
 		});

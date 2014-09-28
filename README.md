@@ -70,17 +70,20 @@ the schemas in a middleware to verify data, or filter based on column level perm
 
 API
 ===
+------
 
 
-pgx.boot
+boot
 ---
 
-    pgx.boot({}, function(a){ res.json(a); } );
+    pgx.boot(options, function(a){ res.json(a); } );
 
 pgx.boot copies data in existing tables, makes new tables to the schemas, replaces the data.
 
 I put this in a get route, run it on update, then push the code again without the route
 it should be idempotent, but I don't really trust it
+
+you have to run this before doing anything, in order to create the tables in your database.
 
 there's probably a better solution (like checking and updating on require)
 
@@ -97,24 +100,35 @@ maps
 you can define a map function to run on each row of the data per schema
 
 
-pgx.read
+read
 ---
 
     pgx.read(schemaNameOrNames, query, options, callback(err, data))
 
 schemaNameOrNames = 'schemaName' for normal reads, ['schemaName1','schemaName2',..] for multischema/(join) reads
 
+update/upsert
+---
+
     pgx.update(schemaName, input, options, callback(err, data))
+    pgx.upsert(schemaName, input, options, callback(err, data))
 
 input has format {where:{key:val,..}, data/query:{key:val,..}}
+
+insert
+---
 
     pgx.insert(schemaName, query, options, callback(err, dataInserted))
 
     pgx.insertBatch(schemaName, [querys], options, callback(err, data))
 
-    pgx.boot(options, callback, errcallback)
+erase
+---
 
     pgx.erase(schemaName, query, options, callback(err, data))
+
+schemaVerify
+---
 
     (( pgx.schemaVerify() ))
 
