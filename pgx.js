@@ -243,7 +243,7 @@ module.exports = function(pg, conop, schemas){
 		    var retres = (ires||{rows:[]}).rows[0];
 
 		    // flatten xattrs here
-		    if(schemaName+'_xattrs' in retres){
+		    if(schemaName+'_xattrs' in (retres||{})){
 			for(var ff in retres[schemaName+'_xattrs'])
 			    retres[ff] = retres[schemaName+'_xattrs'][ff];
 			delete retres[schemaName+'_xattrs'];
@@ -429,7 +429,7 @@ module.exports = function(pg, conop, schemas){
 		    for(var i=result.rows.length; i-->0;){
 			var superdoc = {};
 			for(var ff in result.rows[i])
-			    if(roots.indexOf(ff.split('__')[0]) !== -1)
+			    if(roots === ff.split('__')[0])
 				superdoc[ff.split('__')[1]] = result.rows[i][ff];
 
 			if(superdoc[roots+'_hash'] in sdi) continue;
@@ -445,7 +445,7 @@ module.exports = function(pg, conop, schemas){
 			    if(!(ff.split('__')[0] in pack))
 				if(ff.split('__')[0] !== roots)
 				    pack[ff.split('__')[0]] = {};
-			    if(roots.indexOf(ff.split('__')[0]) === -1){
+			    if(roots !== ff.split('__')[0]){
 				pack[ff.split('__')[0]][ff.split('__')[1]] = result.rows[i][ff];
 			    }
 			    else if(ff.split('__')[1] === roots+'_hash')
@@ -644,7 +644,6 @@ module.exports = function(pg, conop, schemas){
 		}
 
 		client.query(inst+drot, function(drerr, drpon){
-console.log(drerr, drpon, drot);
 		    // create new tables
 		    var crst = '';
 

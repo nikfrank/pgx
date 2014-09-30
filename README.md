@@ -181,6 +181,8 @@ multischema read only works for schema trees of depth 2 [rootSchema, leafSchemas
 
 I intend to rectify this, but it's a bit above my pay grade right now
 
+for the love of your sanity, DO NOT put an empty POJO as a query. I'll fix that later.
+
 (( currently unimplemented is the use of the 'join' sql word. multischema reads are done by implied outer join and are 
 likely pretty slow ))
 
