@@ -1,3 +1,7 @@
+// take the hashes out of this.
+// and everything with a serial key pleeeeeeeeeeeeeeeeez
+// and permissions
+
 module.exports = {
     word:{
 	tableName:'api_word',

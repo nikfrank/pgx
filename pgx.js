@@ -610,6 +610,126 @@ module.exports = function(pg, conop, schemas){
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return errcallback({err:err});
 
+// write the schemas to a special table in the database (make sure no such is in the spec)
+// compare each schema to the prev incarnation
+
+	    // read schemas from schemas table
+	    client.query('select * from schemas;', function(scerr, oldschemarow){
+		var oldschemas, firstBoot = false;
+		if(scerr){
+		    // possibly an init boot... right now this is the assumption
+		    // if the table doesnt exist, mark it for creation later
+console.log(scerr);//how?
+		    oldschemas = {};
+		    firstBoot = true;
+		}else oldschemas = oldschemarow[0].schemas;
+
+		// pull all old data at once
+		var selt = 'select array_to_json(';
+		for(var ss in schemas) selt += '(select array_agg(row_to_json('+schemas[ss].tableName+')) from '+schemas[ss].tableName+') || ';
+		selt = selt.slice(0,-3) + ');';
+
+		if(options.empty) selt = '';
+
+		client.query(selt, function(selerr, oldrows){
+		    if(options.throwSel) if(selerr) return errcallback({selerr:selerr});
+		    var datas = {};
+		    for(var ss in schemas) datas[ss] = [];
+
+		    for(var i=(oldrows||[]).length; i-->0;){
+			for(var ss in oldschemas){
+			    if(ss+'_hash' in oldrows[i]){
+				datas[ss].push(oldrows[i]);
+				break;
+			    }
+			}
+		    }
+
+		    var boot = '';
+
+		    for(var oldSchemaName in oldschemas){
+			if(!(oldSchemaName in schemas)){
+			    boot += 'begin; insert into '+oldschemas[oldSchemaName].tableName+' ('+oldSchemaName+'_hash) values ($$whatever$$); commit;'; // ghost rec for drop
+			    boot += 'begin; drop table '+oldschemas[oldSchemaName].tableName+'; commit;';
+			}else{
+			    var oldschema = oldschemas[oldSchemaName];
+			    var schema = schemas[oldSchemaName];
+
+			    if(JSON.stringify(oldschema) !== JSON.stringify(schema)){
+				boot += 'begin; insert into '+oldschemas[oldSchemaName].tableName+' ('+oldSchemaName+'_hash) values ($$whatever$$); commit;'; // ghost rec for drop
+				boot += 'begin; drop table '+oldschemas[oldSchemaName].tableName+'; commit;';
+
+				// make new table
+				var qq = 'begin; create table '+schema.tableName+' (';
+				for(var ff in schema.fields) qq += ff+' '+schema.fields[ff].type+',';
+				for(var ff in defaultFields) qq += schemaName+'_'+ff +' '+ defaultFields[ff].type+',';
+				qq = qq.slice(0,-1) + '); commit;';
+
+				boot += qq;
+
+				// put data back in
+				// stitch together batch insert using stringSync, wrap it with begin commit
+				var bist = 'begin; ';
+
+				for(var i=datas[oldSchemaName].length; i-->0;)
+				    if(datas[oldSchemaName][i][oldSchemaName+'_hash'] !== null)
+					bist += pg.insert(oldSchemaName, datas[oldSchemaName][i], {stringSync:true});
+
+				bist += 'commit;';
+
+				boot += bist;
+			    }// else that the schema is unaltered, leave the relation be!
+			}
+		    }
+
+		    for(var schemaName in schemas){
+			if(!(schemaName in oldschemas)){
+			    // (if schema doesn't exist, look for matching tablename of schema?)
+			    // make new table
+			    var schema = schemas[schemaName];
+			    var qq = 'begin; create table '+schema.tableName+' (';
+			    for(var ff in schema.fields) qq += ff+' '+schema.fields[ff].type+',';
+			    for(var ff in defaultFields) qq += schemaName+'_'+ff +' '+ defaultFields[ff].type+',';
+			    qq = qq.slice(0,-1) + '); commit;';
+
+			    boot += qq;
+			}
+		    }
+
+		    if(firstBoot){
+			var createSchemaTable = 'begin; create table schemas (schemas json); commit;'
+			boot += createSchemaTable;
+		    }
+
+		    // overwrite the schema json
+		    var overwriteSchemas = 'begin; delete from schemas; commit;';
+
+		    overwriteSchemas += 'insert into schemas (schemas) values (';		
+		    var dm = dmfig(schemas);
+		    overwriteSchemas += formatas(schemas, 'json', dm) + '); commit;';
+
+		    boot += overwriteSchemas;
+
+		    // run the boot query, pray!
+
+		    client.query(boot, function(booterr, bootres){
+			if(booterr){
+			    return errcallback({err:booterr});
+			}else{
+			    return callback({schemas:schemas});
+			}
+		    });
+
+		});
+	    });
+
+	});
+	return;
+
+
+	pg.connect(conop, function(err, client, done) {
+	    if(err) return errcallback({err:err});
+
 	    // pull all old data at once
 	    var selt = 'select array_to_json(';
 	    for(var ss in schemas) selt += '(select array_agg(row_to_json('+schemas[ss].tableName+')) from '+schemas[ss].tableName+') || ';
@@ -618,7 +738,7 @@ module.exports = function(pg, conop, schemas){
 	    if(options.empty) selt = '';
 
 	    client.query(selt, function(selerr, oldrows){
-		if(selerr) return errcallback(selerr);
+		if(options.throwSel) if(selerr) return errcallback({selerr:selerr});
 		var datas = {};
 		for(var ss in schemas) datas[ss] = [];
 
@@ -642,8 +762,11 @@ module.exports = function(pg, conop, schemas){
 		    // append drop statement
 		    drot += 'drop table if exists '+schemas[ss].tableName+';';
 		}
-
+console.log(drot);
 		client.query(inst+drot, function(drerr, drpon){
+		    if(options.throwDrop) if(drerr) return errcallback({drerr:drerr});
+
+console.log(drpon, drerr);
 		    // create new tables
 		    var crst = '';
 
@@ -698,6 +821,7 @@ function fmtwhere(schemaName, query, init){
 
     for(var ff in query){
 	if(ff in schema.fields){
+console.log(schemaName, query, ff);
 	    if(query[ff].constructor == Array){
 
 		if(schema.fields[ff].type.indexOf('[]') === -1) continue;
