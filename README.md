@@ -149,6 +149,8 @@ except that the returning clause (in options) doesn't work for extended fields y
 (listed as "json depth read" in todo code)
 
 
+NO TABLE CAN BE CALLED 'schemas'. I use that.
+
 examples
 =======
 
