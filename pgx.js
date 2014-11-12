@@ -94,7 +94,7 @@ module.exports = function(pg, conop, schemas){
 		var retres = (ires||{rows:[]}).rows[0];
 
 		// flatten xattrs here
-		if(schemaName+'_xattrs' in retres){
+		if(schemaName+'_xattrs' in (retres||{})){
 		    for(var ff in retres[schemaName+'_xattrs'])
 			retres[ff] = retres[schemaName+'_xattrs'][ff];
 		    delete retres[schemaName+'_xattrs'];
@@ -599,6 +599,26 @@ module.exports = function(pg, conop, schemas){
     };
 
 
+
+// DOCUMENT THIS
+    pg.empty = function(callback, errcallback){
+	pg.connect(conop, function(err, client, done) {
+	    if(err) return errcallback({err:err});
+
+	    var emp = 'begin;';
+
+	    for(var sn in schemas) emp += 'delete from '+schemas[sn].tableName+';';
+
+	    emp += 'commit;';
+
+	    client.query(emp, function(err, pon){
+		if(err) return errcallback({err:err});
+		else return callback(pon);
+	    });
+
+	});
+    };
+
     pg.boot = function(options, callback, errcallback){
 	if(!errcallback) errcallback = callback;
 
@@ -633,7 +653,7 @@ console.log(scerr);//how?
 
 		client.query(selt, function(selerr, oldrowres){
 		    if(options.throwSel) if(selerr) return errcallback({selerr:selerr});
-		    var oldrows = oldrowres.rows[0].array_to_json;
+		    var oldrows = (oldrowres.rows[0]||{}).array_to_json;
 		    var datas = {};
 		    for(var ss in schemas) datas[ss] = [];
 
@@ -663,7 +683,7 @@ console.log(scerr);//how?
 				// make new table
 				var qq = 'begin; create table '+schema.tableName+' (';
 				for(var ff in schema.fields) qq += ff+' '+schema.fields[ff].type+',';
-				for(var ff in defaultFields) qq += schemaName+'_'+ff +' '+ defaultFields[ff].type+',';
+				for(var ff in defaultFields) qq += oldSchemaName+'_'+ff +' '+ defaultFields[ff].type+',';
 				qq = qq.slice(0,-1) + '); commit;';
 
 				boot += qq;

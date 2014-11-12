@@ -436,7 +436,7 @@ boot
 
 dev: true
 
-tests: {empty:true}
+tests: rewrite all tests for empty, init, schemachange
 
 docs:
 
