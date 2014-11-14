@@ -652,7 +652,11 @@ console.log(scerr);//how?
 		if(options.empty) selt = '';
 
 		client.query(selt, function(selerr, oldrowres){
-		    if(options.throwSel) if(selerr) return errcallback({selerr:selerr});
+		    if(selerr){
+			if(selerr.code !== '42P01')
+			    return errcallback({selerr:selerr, selt:selt});
+			else oldrowres = {rows:[]};
+		    }
 		    var oldrows = (oldrowres.rows[0]||{}).array_to_json;
 		    var datas = {};
 		    for(var ss in schemas) datas[ss] = [];
