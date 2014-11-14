@@ -642,7 +642,7 @@ module.exports = function(pg, conop, schemas){
 console.log(scerr);//how?
 		    oldschemas = {};
 		    firstBoot = true;
-		}else oldschemas = oldschemarow.rows[0].schemas;
+		}else oldschemas = ((oldschemarow.rows[0]||{}).schemas||{});
 
 		// pull all old data at once
 		var selt = 'select array_to_json(';
