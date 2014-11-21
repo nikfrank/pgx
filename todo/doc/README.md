@@ -14,3 +14,6 @@ big doc on queries
 multischema reads, + test
 
 $union
+
+
+$ or _$

@@ -879,9 +879,10 @@ console.log(schemaName, query, ff);
 // this currently only supports tring depth reads.
 
 		for(var kk in query[ff]){
-		    if(kk[0] === '$'){
+		    if((kk[0] === '$')||(kk.substr(0,2) === '_$')){
 // document this!!!
-			if(kk === '$in'){
+			var nkk = kk.substr(kk.indexOf('$')+1);
+			if(nkk === 'in'){
 			    if(query[ff][kk].constructor != Array) continue;
 
 			    // where value in [val,..]
@@ -893,13 +894,13 @@ console.log(schemaName, query, ff);
 			    wreq = wreq.slice(0,-2);
 			    wreq += ']::'+schema.fields[ff].type+'[]) and '
 
-			}else if(kk === '$contains'){
+			}else if(nkk === 'contains'){
 			    if(schema.fields[ff].type.indexOf('[]') === -1) continue;
 
 			    var dm = dmfig(query[ff][kk]);
 			    wreq += dm + query[ff][kk] + dm + ' = any ('+tt+ff+') and ';
 
-			}else if(kk === '$select'){
+			}else if(nkk === 'select'){
 			    // this is probably a bad idea
 
 			    //usr_fb_id: {$select: {schema:'usr', field:'usr_fb_id', where{...}}}
@@ -927,9 +928,10 @@ console.log(schemaName, query, ff);
 	else if(ff === schemaName+'_hash'){
 	    if(typeof query[ff] === 'object'){
 		for(var kk in query[ff]){
-		    if(kk[0] === '$'){
+		    if((kk[0] === '$')||(kk.substr(0,2) === '_$')){
 // document this!!!
-			if(kk === '$in'){
+			var nkk = kk.substr(kk.indexOf('$')+1);
+			if(nkk === 'in'){
 			    if(query[ff][kk].constructor != Array) continue;
 
 			    // where value in [val,..]
@@ -941,7 +943,7 @@ console.log(schemaName, query, ff);
 			    wreq = wreq.slice(0,-2);
 			    wreq += ']::varchar(31)[]) and '
 
-			}else if(kk === '$select'){
+			}else if(nkk === 'select'){
 			    // this is probably a bad idea
 
 			    //topic_hash: {$select: {schema:'usr', field:'teaching', where{...}}}
