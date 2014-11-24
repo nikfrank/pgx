@@ -2,6 +2,8 @@
 todo (code)
 ----------------
 
+fix the schema table boot bug
+
 date comparisons
 
 array push if not contains

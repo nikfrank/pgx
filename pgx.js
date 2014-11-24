@@ -672,6 +672,8 @@ console.log(scerr);//how?
 
 		    var boot = '';
 
+console.log(JSON.stringify(oldschemas));
+
 		    for(var oldSchemaName in oldschemas){
 			if(!(oldSchemaName in schemas)){
 			    boot += 'begin; insert into '+oldschemas[oldSchemaName].tableName+' ('+oldSchemaName+'_hash) values ($$whatever$$); commit;'; // ghost rec for drop
