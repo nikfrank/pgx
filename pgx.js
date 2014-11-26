@@ -400,8 +400,11 @@ module.exports = function(pg, conop, schemas){
 	    if(options.stringOnly) return callback(null, treq);
 
 
-	    pg.connect(conop, function(err, client, done) {
-		if(err) return res.json({err:err});
+	    pg.connect(conop, function(err, client, done){
+		if(err){
+		    done();
+		    return callback(err);
+		}
 		client.query(treq, function(err, result) {
 		    if(err) console.log(err);
 		    done();
@@ -537,7 +540,10 @@ module.exports = function(pg, conop, schemas){
 
 
 	pg.connect(conop, function(err, client, done) {
-	    if(err) return res.json({err:err});
+	    if(err){
+		done();
+		return callback(err);
+	    }
 	    client.query(treq, function(err, result) {
 		if(err) return callback(err);
 		done();
@@ -579,7 +585,10 @@ module.exports = function(pg, conop, schemas){
 	var treq = ereq + wreq + ';';
 
 	pg.connect(conop, function(err, client, done) {
-	    if(err) return res.json({err:err});
+	    if(err){
+		done();
+		return callback(err);
+	    }	    
 	    client.query(treq, function(err, result) {
 		if(err) console.log(err);
 		done();
