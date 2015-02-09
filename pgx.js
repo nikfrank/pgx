@@ -24,6 +24,8 @@ module.exports = function(pg, conop, schemas){
 	var qreq = 'insert into '+schema.tableName+' (';
 	var valreq = ') values (';
 
+// query undefined error
+
 	if(!((schemaName+'_hash') in query)){
 	    // make up a hash
             var hmac = crypto.createHmac("sha1", "the toronto maple leafs are garbage"); 
@@ -495,6 +497,8 @@ module.exports = function(pg, conop, schemas){
 	if(typeof schemaNameOrNames === 'string') schemaName = schemaNameOrNames;
 	var schema = schemas[schemaName];
 
+// check for error, return throw something reasonable
+
 	var rreq = fmtret(options.returning);
 
 	var areq= '', breq = '';
@@ -684,7 +688,7 @@ console.log(scerr);//how?
 console.log(JSON.stringify(oldschemas));
 
 		    for(var oldSchemaName in oldschemas){
-			if(!(oldSchemaName in schemas)){
+			if(!(oldSchemaName in schemas) && !options.nuboot){
 			    boot += 'begin; insert into '+oldschemas[oldSchemaName].tableName+' ('+oldSchemaName+'_hash) values ($$whatever$$); commit;'; // ghost rec for drop
 			    boot += 'begin; drop table '+oldschemas[oldSchemaName].tableName+'; commit;';
 			}else{
@@ -732,20 +736,22 @@ console.log(JSON.stringify(oldschemas));
 			}
 		    }
 
+		    var overwriteSchemas = 'begin; ';
+
 		    if(firstBoot){
-			var createSchemaTable = 'begin; create table schemas (schemas json); commit;'
-			boot += createSchemaTable;
+			boot += 'begin; create table schemas (schemas json); commit;'
+		    }else{
+
+			// overwrite the schema json
+			overwriteSchemas = 'delete from schemas; commit;';
 		    }
-
-		    // overwrite the schema json
-		    var overwriteSchemas = 'begin; delete from schemas; commit;';
-
+		    
 		    overwriteSchemas += 'insert into schemas (schemas) values (';		
 		    var dm = dmfig(schemas);
 		    overwriteSchemas += formatas(schemas, 'json', dm) + '); commit;';
 
 		    boot += overwriteSchemas;
-
+console.log(boot);
 		    // run the boot query, pray!
 
 		    client.query(boot, function(booterr, bootres){
@@ -762,87 +768,6 @@ console.log(JSON.stringify(oldschemas));
 	});
 	return;
 
-
-	pg.connect(conop, function(err, client, done) {
-	    if(err) return errcallback({err:err});
-
-	    // pull all old data at once
-	    var selt = 'select array_to_json(';
-	    for(var ss in schemas) selt += '(select array_agg(row_to_json('+schemas[ss].tableName+')) from '+schemas[ss].tableName+') || ';
-	    selt = selt.slice(0,-3) + ');';
-
-	    if(options.empty) selt = '';
-
-	    client.query(selt, function(selerr, oldrows){
-		if(options.throwSel) if(selerr) return errcallback({selerr:selerr});
-		var datas = {};
-		for(var ss in schemas) datas[ss] = [];
-
-		for(var i=(oldrows||[]).length; i-->0;){
-		    for(var ss in schemas){
-			if(ss+'_hash' in oldrows[i]){
-			    datas[ss].push(oldrows[i]);
-			    break;
-			}
-		    }
-		}
-
-		var inst = '';
-		var drot = '';
-
-		for(var ss in schemas){
-		    if(!datas[ss].length){
-			//append to insert statement a nully row
-			inst += 'insert into '+schemas[ss].tableName+' ('+ss+'_hash) values ($$whatever$$);'
-		    }
-		    // append drop statement
-		    drot += 'drop table if exists '+schemas[ss].tableName+';';
-		}
-console.log(drot);
-		client.query(inst+drot, function(drerr, drpon){
-		    if(options.throwDrop) if(drerr) return errcallback({drerr:drerr});
-
-console.log(drpon, drerr);
-		    // create new tables
-		    var crst = '';
-
-		    for(var ss in schemas){
-			var qq = 'create table if not exists '+schemas[ss].tableName+' (';
-			for(var ff in schemas[ss].fields) qq += ff+' '+schemas[ss].fields[ff].type+',';
-			for(var ff in defaultFields) qq += ss+'_'+ff +' '+ defaultFields[ff].type+',';
-			qq = qq.slice(0,-1) + ');';
-			crst += qq;
-		    }
-		    if(options.createString){
-			done();
-			return callback(crst);
-		    }
-
-		    client.query(crst, function(crerr, crpon){
-			// per schema, if map function defined in query - map data
-			if(options.empty){
-			    done();
-			    return callback({schemas:schemas});
-			}
-
-			if(options.maps) for(var ss in schemas)
-			    if(options.maps[ss]) datas[ss] = datas[ss].map(options.maps[ss]);
-			
-			// stitch together insertBatch strings
-			var bist = '';
-
-			for(var ss in schemas) for(var i=datas[ss].length; i-->0;)
-			    if(datas[ss][i][ss+'_hash'] !== null)
-				bist += pg.insert(ss, datas[ss][i], {stringSync:true});
-			
-			client.query(bist, function(bierr, bipon){
-			    done();
-			    return callback({res:bipon, schemas:schemas});
-			});
-		    });
-		});
-	    });
-	}); 
     };
 
     return pg;
