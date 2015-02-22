@@ -6,11 +6,7 @@ module.exports = {
     word:{
 	tableName:'api_word',
 	fields:{
-	    word_id:{
-		type:'serial primary key',
-		permissions:''
-	    },
-	    lang_hash:{
+	    lang:{
 		type:'varchar(31)',
 		permissions:'',
 		jointype:'lang',
@@ -29,7 +25,7 @@ module.exports = {
 		type:'varchar(63)',
 		permissions:''
 	    },
-	    rule_hash:{
+	    rule:{
 		type:'varchar(31)',
 		permissions:'',
 		jointype:'rule'
@@ -55,6 +51,13 @@ module.exports = {
 	    author:{
 		type:'varchar(31)',
 		permissions:''
+	    },
+	    notes:{
+		type:'text'
+	    },
+	    span:{
+		type:'interval',
+		defval:'00:00:00'
 	    }
 	}// </fields>
     },
@@ -65,9 +68,8 @@ module.exports = {
 	    // yet to define this field
 	},
 	fields:{
-	    phrase_id:{
-		type:'serial primary key',
-		permissions:''
+	    notes:{
+		type:'text'
 	    }
 	}
     },
@@ -78,9 +80,8 @@ module.exports = {
 	    // yet to define this field
 	},
 	fields:{
-	    tln_id:{
-		type:'serial primary key',
-		permissions:''
+	    notes:{
+		type:'text'
 	    }
 	}
     },
@@ -91,17 +92,13 @@ module.exports = {
 	    // yet to define this field
 	},
 	fields:{
-	    rule_id:{
-		type:'serial primary key',
-		permissions:''
-	    },
 	    name:{
 		type:'varchar(63)',
 		permissions:'',
 		defval:'',
 		required:true
 	    },
-	    lang_hash:{
+	    lang:{
 		type:'varchar(63)',
 		permissions:'',
 		jointype:'lang',
@@ -159,10 +156,6 @@ module.exports = {
 	    // yet to define this field
 	},
 	fields:{
-	    lang_id:{
-		type:'serial primary key',
-		permissions:''
-	    },
 	    name:{
 		type:'varchar(63)',
 		permissions:'',

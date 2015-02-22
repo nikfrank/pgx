@@ -40,9 +40,14 @@ module.exports = function(pg, conop, schemas){
 	    if(ff === schemaName+'_xattrs') continue;
 	    if(ff === schemaName+'_hash') continue;
 	    if(!(ff in query))
-		if('defval' in schema.fields[ff]) query[ff] = schema.fields[ff].defval;
+		if('defval' in schema.fields[ff]){
+		    query[ff] = schema.fields[ff].defval;
+		}else{
+		    query[ff] = null;
+		}
 
 	    if(ff in query){
+console.log(ff);
 		qreq += ff + ',';		
 		var dm = dmfig(query[ff]);
 		valreq += formatas(query[ff], schema.fields[ff].type, dm) + ',';
@@ -134,6 +139,7 @@ module.exports = function(pg, conop, schemas){
 		client.query(treq, function(ierr, ires){
 		    done();
 // clean up xattrs
+		    if(ierr) ierr = {batcherr:ierr, string:treq};
 		    return callback(ierr, (ires||{rows:[]}).rows);
 		});
 	    }); 
@@ -685,7 +691,7 @@ console.log(scerr);//how?
 
 		    var boot = '';
 
-console.log(JSON.stringify(oldschemas));
+//console.log(JSON.stringify(oldschemas));
 
 		    for(var oldSchemaName in oldschemas){
 			if(!(oldSchemaName in schemas) && !options.nuboot){
@@ -751,7 +757,7 @@ console.log(JSON.stringify(oldschemas));
 		    overwriteSchemas += formatas(schemas, 'json', dm) + '); commit;';
 
 		    boot += overwriteSchemas;
-console.log(boot);
+//console.log(boot);
 		    // run the boot query, pray!
 
 		    client.query(boot, function(booterr, bootres){
@@ -782,7 +788,7 @@ function fmtwhere(schemaName, query, init){
 
     for(var ff in query){
 	if(ff in schema.fields){
-console.log(schemaName, query, ff);
+//console.log(schemaName, query, ff);
 	    if(query[ff].constructor == Array){
 
 		if(schema.fields[ff].type.indexOf('[]') === -1) continue;
@@ -970,7 +976,8 @@ function formatas(data, type, dm, old){
     var ret = '';
 
     //string
-    if(type.indexOf('varchar') !== -1){ // grab varchar \d+ length and truncate?
+    // grab varchar \d+ length and truncate?
+    if((type.indexOf('varchar') !== -1) || (type.indexOf('text') !== -1)){
 	//if empty string put null
 	if((typeof data === 'undefined')||((JSON.stringify(data) === 'null')&&(data !== 'null')))
 	    return 'null';
@@ -1000,6 +1007,12 @@ function formatas(data, type, dm, old){
 	    return (dm + (new Date(data)).toISOString() + dm);
 	}
     }
+
+    //interval
+    else if(type === 'interval'){
+	return (dm + data + dm);	
+    }
+
     //json
     else if(type.indexOf('json') !== -1){
 	//XOVR old with data, then write

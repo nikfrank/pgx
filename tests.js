@@ -23,7 +23,9 @@ describe('pgx', function(){
 	pgx.boot({empty:true}, function(res){
 	    //check res?
 	    done();
-	}, function(err){done(err);});
+	}, function(err){
+	    done(JSON.stringify(err));
+	});
     });
 
 // connection tests---------(dep)--------------------------------------------
@@ -78,6 +80,20 @@ describe('pgx', function(){
 	});
 
 
+	describe('()', function(){
+	    it('should return the inserted word document', function(done){
+
+		var doc = tdata.testwords[0];
+		var ops = {stringOnly:true};
+console.log(doc, 'doc');
+		pgx.insert('word', doc, ops, function(err, res){
+		    //check the res against the doc
+		    done(err);
+		});
+	    });
+	});
+
+
 // this doesn't work for xattrs cols
 	describe('(returning:whatever)', function(){
 	    it('should return the inserted document', function(done){
@@ -102,7 +118,7 @@ describe('pgx', function(){
 		pgx.batchInsert('word', docs, ops, function(err, res){
 		    //check the res against a sql batch insert regexp
 		    
-console.log(res.split('conj'));
+//console.log(res.split('conj'));
 
 		    done(err);
 		});
@@ -120,7 +136,7 @@ console.log(res.split('conj'));
 		    //check the res against the doc
 console.log('res',res);
 console.log('err',err);
-		    done(err);
+		    done(err?JSON.stringify(err):null);
 		});
 	    });
 	});

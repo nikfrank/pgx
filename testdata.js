@@ -88,7 +88,9 @@ module.exports = {
 	      },
 
     testwords:[
-	{"conjRule":"פעל","conjExp":{},"lang":"iw","root":"קרא","type":"v","grp":"פעל"},
+	{"conjRule":"פעל","conjExp":{},"lang":"iw","root":"קרא","type":"v","grp":"פעל",
+	 "notes":'blah,blah,blah', "span":'00:02:00'
+	},
 	{"conjRule":"פעל","conjExp":{},"lang":"iw","root":"שמר","type":"v","grp":"פעל"},
 	{"conjRule":"פעל","conjExp":{},"lang":"iw","root":"גמר","type":"v","grp":"פעל"},
 	{"conjRule":"פעל","conjExp":{},"lang":"iw","root":"כתב","type":"v","grp":"פעל"}
