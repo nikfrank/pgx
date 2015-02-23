@@ -505,6 +505,22 @@ console.log(ff);
 
 // check for error, return throw something reasonable
 
+	if(!options.returning){
+	    options.returning = Object.keys(schema.fields);
+	}
+
+// convert intervals in the schema to miliseconds
+	if(typeof options.returning === 'object'){
+	    for(var ff in schema.fields){
+		if(schema.fields[ff].type === 'interval'){
+		    if(options.returning.indexOf(ff)!==-1){
+			options.returning[options.returning.indexOf(ff)] = 
+			    '1000*date_part(\'epoch\', '+options.returning[options.returning.indexOf(ff)]+')';
+		    }
+		}
+	    }
+	}
+
 	var rreq = fmtret(options.returning);
 
 	var areq= '', breq = '';
