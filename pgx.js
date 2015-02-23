@@ -505,26 +505,6 @@ console.log(ff);
 
 // check for error, return throw something reasonable
 
-	if(!options.returning){
-	    options.returning = Object.keys(schema.fields);
-	    options.returning.push(schemaName + '_hash');
-	    options.returning.push(schemaName + '_xattrs');
-	}
-
-// convert intervals in the schema to miliseconds
-// move this to fmtret, which needs a refactor
-	if(typeof options.returning === 'object'){
-	    for(var ff in schema.fields){
-		if(schema.fields[ff].type === 'interval'){
-		    if(options.returning.indexOf(ff)!==-1){
-			options.returning[options.returning.indexOf(ff)] = 
-			    '1000*date_part(\'epoch\', '+options.returning[options.returning.indexOf(ff)]+') '+
-			    'as '+ff;
-		    }
-		}
-	    }
-	}
-
 	var rreq = fmtret(options.returning);
 
 	var areq= '', breq = '';
@@ -960,6 +940,7 @@ function dmfig(s){
     return '$'+ns+'$';
 }
 
+// this thing is a mess
 function fmtret(rop, schemaName, withas){
 
     var prefix;
