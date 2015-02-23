@@ -510,12 +510,14 @@ console.log(ff);
 	}
 
 // convert intervals in the schema to miliseconds
+// move this to fmtret, which needs a refactor
 	if(typeof options.returning === 'object'){
 	    for(var ff in schema.fields){
 		if(schema.fields[ff].type === 'interval'){
 		    if(options.returning.indexOf(ff)!==-1){
 			options.returning[options.returning.indexOf(ff)] = 
-			    '1000*date_part(\'epoch\', '+options.returning[options.returning.indexOf(ff)]+')';
+			    '1000*date_part(\'epoch\', '+options.returning[options.returning.indexOf(ff)]+') '+
+			    'as '+ff;
 		    }
 		}
 	    }
