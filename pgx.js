@@ -507,6 +507,8 @@ console.log(ff);
 
 	if(!options.returning){
 	    options.returning = Object.keys(schema.fields);
+	    options.returning.push(schemaName + '_hash');
+	    options.returning.push(schemaName + '_xattrs');
 	}
 
 // convert intervals in the schema to miliseconds
