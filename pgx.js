@@ -114,20 +114,15 @@ console.log(ff);
 
 
     pg.batchInsert = function(schemaName, queryArray, options, callback){
-	
 	var schema = schemas[schemaName];
-
 	var qreq = 'insert into '+schema.tableName+' (';
-
 	var valreq = ') values ';
-
 	var rreq = fmtret(options.returning);
 
 	var foroptions = options;
 	foroptions.valreqOnly = true;
 
 	var rem = queryArray.length;
-
 	var callDB = function(){
 	    var treq = qreq + valreq + ' returning '+rreq+';';
 
@@ -258,17 +253,14 @@ console.log(ff);
 		    }
 
 		    return callback(ierr, retres);
-
 		});
 	    });
 	});
     };
-
     pg.upsert = pg.update;
 
 
     pg.read = function(schemaNameOrNames, query, options, callback){
-
 	if(schemaNameOrNames.constructor == Array){
 //-----------------------------------------------------------------------------------------
 // JOIN READS
@@ -316,7 +308,6 @@ console.log(ff);
 	    rreq = rreq.slice(0,-1);
 
 	    var roots = schemae[0]; // document this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 	    var jreq = ' where ';
 
 	    // make the return tree structure
@@ -486,16 +477,11 @@ console.log(ff);
 				superdocs[sdi[pack.$superhash]][treekey][iin] = pack[gg];
 			    }
 //test!
-
 			}
-
-
 		    }
-
 		    return callback(err, superdocs);
 		});
 	    });
-
 	    return;
 	}
 
@@ -506,7 +492,6 @@ console.log(ff);
 // check for error, return throw something reasonable
 
 	var rreq = fmtret(options.returning);
-
 	var areq= '', breq = '';
 
 	if(rreq !== '*'){
@@ -519,6 +504,7 @@ console.log(ff);
 
 	var oreq = '';
 
+// move this error throwing to a function and implement it everywhere
 	if(typeof options.limit === 'number'){
 	    if(options.limit < 1) throw new Error('limit of '+options.limit+' less than one');
 	    oreq += ' limit '+options.limit;
@@ -580,7 +566,6 @@ console.log(ff);
 
 
     pg.erase = function(schemaName, query, options, callback){
-
 	var schema = schemas[schemaName];
 
 	if(options.deleteLinked){
@@ -589,9 +574,7 @@ console.log(ff);
 	}
 	// else, simply erase those records fields
 	var ereq = 'delete from ' + schema.tableName;
-
  	var wreq = fmtwhere(schemaName, query);
-
 	var treq = ereq + wreq + ';';
 
 	pg.connect(conop, function(err, client, done) {
@@ -606,7 +589,6 @@ console.log(ff);
 		return callback(err, result);
 	    });
 	});
-
     };
 
 
@@ -614,7 +596,6 @@ console.log(ff);
 	// make sure there aren't any fields called 'group' or 'user' or starts with $
 	// make sure all jointypes exist
 	// make sure there's a primary serial key
-	
     };
 
 
@@ -858,6 +839,14 @@ function fmtwhere(schemaName, query, init){
 
 			    wreq += tt+ff + ' = any (select ' + ssf + ' from '+ sst +
 				fmtwhere(ss, query[ff][kk].where) + ') and ';
+
+			}else if(nkk === 'isempty'){
+			    if(schema.fields[ff].type.indexOf('[]') === -1) continue;
+
+			    query[ff][kk]?
+				wreq += '('+tt+ff+' is null) or array_upper('+tt+ff+',1)=0 and ':
+				wreq += '('+tt+ff+' is not null) and array_upper('+tt+ff+',1)>0 and ';
+console.log(wreq);
 			}
 		    }else{
 			var dmk = dmfig(kk);
