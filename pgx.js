@@ -96,7 +96,7 @@ console.log(ff);
 
 	    client.query(treq, function(ierr, ires){
 		done();
-		if(ierr) ep = {err:ierr, stmt:treq};
+		if(ierr) return callback({err:ierr, stmt:treq});
 
 		var retres = (ires||{rows:[]}).rows[0];
 
