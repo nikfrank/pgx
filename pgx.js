@@ -18,7 +18,6 @@ module.exports = function(pg, conop, schemas){
     pg.schemas = schemas;
     
     pg.insert = function(schemaName, query, options, callback){
-	
 	var schema = schemas[schemaName];
 
 	var qreq = 'insert into '+schema.tableName+' (';
@@ -97,6 +96,7 @@ console.log(ff);
 
 	    client.query(treq, function(ierr, ires){
 		done();
+		if(ierr) ep = {err:ierr, stmt:treq};
 
 		var retres = (ires||{rows:[]}).rows[0];
 
@@ -157,7 +157,6 @@ console.log(ff);
 
     pg.update = function(schemaName, input, options, callback){
 	
-
 // if there's no json or xattrs, this should be done in one request
 // that would require me to know what I was doing with postgres tho!
 
@@ -241,7 +240,7 @@ console.log(ff);
 
 		    done();
 
-		    if(ep) callback(ep);
+		    if(ep) return callback(ep);
 
 		    var retres = (ires||{rows:[]}).rows[0];
 
@@ -846,7 +845,6 @@ function fmtwhere(schemaName, query, init){
 			    query[ff][kk]?
 				wreq += '('+tt+ff+' is null) or array_upper('+tt+ff+',1)=0 and ':
 				wreq += '('+tt+ff+' is not null) and array_upper('+tt+ff+',1)>0 and ';
-console.log(wreq);
 			}
 		    }else{
 			var dmk = dmfig(kk);
