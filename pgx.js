@@ -929,7 +929,6 @@ function dmfig(s){
 
 // this thing is a mess
 function fmtret(rop, schemaName, withas){
-
     var prefix;
     if(schemaName) prefix = schemas[schemaName].tableName;
     var pfx = prefix || '';
@@ -1035,7 +1034,10 @@ function formatas(data, type, dm, old){
     }
     // int/bool
     else{
-	if(type.indexOf('[') === -1) return ('' + data);
+	if(type.indexOf('[') === -1){
+	    if(data === '') return 'null';
+	    else return ('' + data);
+	}
 	//array
 	else{
 	    if(!data) return ('ARRAY[]::'+type);
