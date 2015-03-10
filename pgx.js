@@ -805,8 +805,7 @@ function fmtwhere(schemaName, query, init){
 // this currently only supports tring depth reads.
 
 		for(var kk in query[ff]){
-		    if((kk[0] === '$')||(kk.substr(0,2) === '_$')){
-// document this!!!
+		    if((kk[0] === '$')||(kk.substr(0,2) === '_$')){// document this!!!
 			var nkk = kk.substr(kk.indexOf('$')+1);
 			if(nkk === 'in'){
 			    if(query[ff][kk].constructor != Array) continue;
