@@ -1,6 +1,6 @@
 {
   "name": "pgx",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "homepage": "http://nikfrank.com/#/works/pgx",
   "description": "Simple as pie ODM for pg postgres module",
   "dependencies": {
