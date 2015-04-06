@@ -1,5 +1,6 @@
 var crypto = require('crypto');
 var btoa = require('btoa');
+var pgj = require('./pgj.js');
 
 module.exports = function(pg, conop, schemas){
 
@@ -46,7 +47,6 @@ module.exports = function(pg, conop, schemas){
 		}
 
 	    if(ff in query){
-console.log(ff);
 		qreq += ff + ',';		
 		var dm = dmfig(query[ff]);
 		valreq += formatas(query[ff], schema.fields[ff].type, dm) + ',';
@@ -83,7 +83,9 @@ console.log(ff);
 	qreq = qreq.slice(0,-1);
 	valreq = valreq.slice(0,-1);
 
-	if(options.valreqOnly) return callback(undefined, {qreq:qreq, valreq:valreq.substr(9)});
+// this is spaghetti. we aren't in Italy!
+	if(options.valreqOnly)
+	    return callback(undefined, {qreq:qreq, valreq:valreq.substr(9)});
 
 	var rreq = fmtret(options.returning);
 	var treq = qreq + valreq + ') returning '+rreq+';';
@@ -1015,7 +1017,8 @@ function formatas(data, type, dm, old){
 	    }
 	}
 
-	if(type.indexOf('[') === -1) return (dm + JSON.stringify(data) + dm + '::json');
+	if(type.indexOf('[') === -1)
+	    return (dm + JSON.stringify(data) + dm + '::json');
 	//array
 	else{
 	    if(!data) return 'ARRAY[]::json[]';
