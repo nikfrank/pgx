@@ -485,6 +485,10 @@ module.exports = function(pg, conop, schemas){
 	    });
 	    return;
 	}
+// normal read
+// normal read
+// normal read
+// normal read
 
 	var schemaName;
 	if(typeof schemaNameOrNames === 'string') schemaName = schemaNameOrNames;
