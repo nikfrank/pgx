@@ -604,6 +604,21 @@ module.exports = function(pg, conop, schemas){
     };
 
 
+    pg.dbstats = function(callback){
+	pg.connect(config.conop, function(err, client, done) {
+	    if(err) return callback({connection_err:err});
+	    client.query('SELECT schemaname,relname,n_live_tup FROM pg_stat_user_tables '+
+			 '  ORDER BY n_live_tup DESC;', function(ierr, ires){
+			     done();
+			     return callback(ires.rows.map(function(ri){
+				 var ii = {};
+				 ii[ri.relname] = ri.n_live_tup;
+				 return ii;
+			     }));
+			 });
+	});
+    };
+
 
 // DOCUMENT THIS
     pg.empty = function(callback, errcallback){

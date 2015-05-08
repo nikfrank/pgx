@@ -1,3 +1,9 @@
+// fields beginning with & are inpointers
+// not actually part of the schema,
+// rather a reflection of other schemae
+
+// later there may be more complex (multi index) pointers to handle
+
 module.exports = {
     person:{
 	name:'text',

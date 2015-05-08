@@ -28,17 +28,60 @@ module.exports = function(pg, conop, schemas){
 // all joining done on client.
 
 
-    var jsql = {};
+    var jsl = {};
     
-    jsql.process = function(){
+    jsl.process = function(list, context){
 	// use this to process query lists into batch calls or whatever
-	// which can be executed parallel if you want
+	// which can be executed parallel if you want (which is a jsql function)
+
+	// there are no pointer types in lisp.
+
+	
+	// list of default functions needed
+	// set, setq
+
+
+	// list of built in macros needed
+	// defun
+
+
+// if is a macro def?
+
+
+	// if not a list
+	 // if a string, return the context value ||| string literal
+	 // otherwise, return the literal
+
+	// loop through the list
+
+	// if the first item isn't a string, return the list (non-string literals are data)
+	
+	// else, lookup the string in the function context. if not found, throw an error
+	// we'll likely have options from the functions table
+	// look at the params (process any which are arrays) to determine which function to call
+
+	// if the fn is native, call it with the param values
+	// if the fn is written in jsl, run the defun macro on it, then jsl.process
+	
     };
+
+// this to be its own npm module
+
+
 
     pg.query = function(calls, callback){
 	// multiquery top level calls
 
 	// array of calls like
+
+// change this to use jsql top to bottom
+// and to use elisp conventions for context and vars in the context
+// except that theres a str function for string literals when they collide with var names
+// if a string is not found in the context, it is casted as a literal
+
+// PascalCase your vars
+
+// pgj would then define functions written in jsql for create, etc
 
 	var callsArraySerial = [
 	    ['create', 'person', {person:'object'}, 'ResultTag']
@@ -47,11 +90,10 @@ module.exports = function(pg, conop, schemas){
 	    // simple squery -> just an object
 	    // returns it into the 'ResultTag' tag for later calls/return val
 
-
 	    ['update', 'school', // ['uquery using ResultTag'], 'ie',
              {
 		 where:{school_hash:'school0'},
-		 set:{students:['concat', ['map', ['prop','person_hash'], ['prev','ResultTag']] ] }
+		 set:{students:['concat', ['map', ['prop','person_hash'], 'ResultTag'] ] }
 	     },
 	     'FinalRes'
 	    ]
@@ -73,7 +115,7 @@ module.exports = function(pg, conop, schemas){
 
 	// jsql has a list of registered annotated functions he knows he can call
 
-        // using '`' we can escape function calls in order that it not be processed
+        // using '\'' we can escape function calls in order that it not be processed
 	// but really ` is a function which returns the rest of the params in an array
 
 	// set loops through the obj fields to prepare the set statement values & operations
@@ -81,7 +123,7 @@ module.exports = function(pg, conop, schemas){
                                               // which returns sql with the operator and values baked in
 	    // map with two params will return data having applied the fnP1 to the dataP2
 	      // prop returns a function extracing a the 'person_hash' property from an object
-	      // prev returns the data from the ResultTag call
+	      // ResultTag finds the prev result from this context
 	    // map applies the propFn to the prevData, resulting in an array of person_hashes
 	  // concat returns a function which will turn fieldName into 'fieldName (concat op) (mapData)' sql
 	// set applies the concat function to the students fieldName, and appends the sql to the queryString
@@ -92,7 +134,7 @@ module.exports = function(pg, conop, schemas){
 
 	// can be done parallel if the programmer is confident in atomicity
 
-
+	// lijsp just processes the lists, pgj takes the output string and calls it or array to serial
 
 
     };

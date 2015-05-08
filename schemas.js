@@ -2,6 +2,12 @@
 // and everything with a serial key pleeeeeeeeeeeeeeeeez
 // and permissions
 
+
+
+// add a field in each schema "relations"
+
+// which reflects inpointers
+
 module.exports = {
     word:{
 	tableName:'api_word',
