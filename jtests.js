@@ -34,7 +34,7 @@ describe('pgj', function(){
     });
 
     after(function(done){
-	fs.writeFile("./stringResJ.json", JSON.stringify(stringRes), function(err){
+	fs.writeFile("./jStringRes.json", JSON.stringify(stringRes), function(err){
 	    if(err) return done(err);
 	    console.log("The file was saved!");
 	    done();

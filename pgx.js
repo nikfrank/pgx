@@ -17,7 +17,7 @@ module.exports = function(pg, conop, schemas){
 
     pg.conop = conop;
     pg.schemas = schemas;
-    
+
     pg.insert = function(schemaName, query, options, callback){
 	var schema = schemas[schemaName];
 
@@ -68,9 +68,6 @@ module.exports = function(pg, conop, schemas){
 
 	// hash field
 // these default fields shouldn't be using magic code like this
-// these default fields shouldn't be using magic code like this
-// these default fields shouldn't be using magic code like this
-// these default fields shouldn't be using magic code like this
 
 // also, move all the valreq stuff earlier to omit the rest on valreq only reqs
 
@@ -87,7 +84,7 @@ module.exports = function(pg, conop, schemas){
 	if(options.valreqOnly)
 	    return callback(undefined, {qreq:qreq, valreq:valreq.substr(9)});
 
-	var rreq = fmtret(options.returning);
+	var rreq = fmtret(options.returning, schemaName);
 	var treq = qreq + valreq + ') returning '+rreq+';';
 
 	if(options.stringOnly) return callback(undefined, treq);
@@ -119,7 +116,7 @@ module.exports = function(pg, conop, schemas){
 	var schema = schemas[schemaName];
 	var qreq = 'insert into '+schema.tableName+' (';
 	var valreq = ') values ';
-	var rreq = fmtret(options.returning);
+	var rreq = fmtret(options.returning, schemaName);
 
 	var foroptions = options;
 	foroptions.valreqOnly = true;
@@ -231,7 +228,7 @@ module.exports = function(pg, conop, schemas){
 
 		qreq = qreq.slice(0,-1);
 
-		var rreq = fmtret(options.returning);
+		var rreq = fmtret(options.returning, schemaName);
 		var treq = qreq + wreq + ' returning '+rreq+';';
 
 		if(options.stringOnly) return callback(undefined, treq);
