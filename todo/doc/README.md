@@ -1,4 +1,5 @@
 stuff to doc
+---
 
 
 alias upsert, insertBatch
@@ -11,7 +12,7 @@ big doc on schemas
 
 big doc on queries
 
-multischema reads, + test
+// multischema reads, + test
 
 $union
 

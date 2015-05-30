@@ -2,6 +2,8 @@ var btoa = require('btoa');
 
 module.exports = function(pg, conop, schemas){
 
+    var HASHTYPE = 'varchar(31)';
+
 // todo -> port over nuboot code, implement typeOnly shortcut
 // implement foreign keys in boot
 // implement schemaVerify
@@ -27,45 +29,6 @@ module.exports = function(pg, conop, schemas){
 // get rid of join reads
 // all joining done on client.
 
-
-    var jsl = {};
-    
-    jsl.process = function(list, context){
-	// use this to process query lists into batch calls or whatever
-	// which can be executed parallel if you want (which is a jsql function)
-
-	// there are no pointer types in lisp.
-
-	
-	// list of default functions needed
-	// set, setq
-
-
-	// list of built in macros needed
-	// defun
-
-
-// if is a macro def?
-
-
-	// if not a list
-	 // if a string, return the context value ||| string literal
-	 // otherwise, return the literal
-
-	// loop through the list
-
-	// if the first item isn't a string, return the list (non-string literals are data)
-	
-	// else, lookup the string in the function context. if not found, throw an error
-	// we'll likely have options from the functions table
-	// look at the params (process any which are arrays) to determine which function to call
-
-	// if the fn is native, call it with the param values
-	// if the fn is written in jsl, run the defun macro on it, then jsl.process
-	
-    };
-
-// this to be its own npm module
 
 
 
@@ -197,7 +160,7 @@ module.exports = function(pg, conop, schemas){
 
 	// determine any with clauses which require use
 
-
+	// with clauses... where - as
 	var stmt = 'select [[returning clause]] from [[table]] where [[where clause.. and where clause]];'
 
 	callback('unimp');
@@ -228,6 +191,9 @@ module.exports = function(pg, conop, schemas){
 
     pg.create = function(schemaName, query, options, callback){
 	// look through query for any * fields with subqueries... allow this?
+
+	// all * field subqueries to be handled as WITH statements
+
 	// instinctively this should be taken care of by the client cache
 
 	if(!callback){
@@ -235,8 +201,8 @@ module.exports = function(pg, conop, schemas){
 	    options = {};
 	}
 
-	var qreq = insertStmt(schemaName), vreq = insertValue(schemaName, query),
-	rreq = retClause(schemaName);
+//	var qreq = insertStmt(schemaName), vreq = insertValue(schemaName, query),
+//	rreq = retClause(schemaName);
 
 	// run any schema prehandlers
 	// retClause should take care of xattrs depth read
@@ -262,7 +228,7 @@ module.exports = function(pg, conop, schemas){
 	var schema = schemas[schemaName];
 	var valreq = '(';
 	if(!((schemaName+'_hash') in query)) query[schemaName+'_hash'] = hash();
-	valreq += formatAs(query[schemaName+'_hash'], 'varchar(31)');
+	valreq += formatAs(query[schemaName+'_hash'], HASHTYPE);
 	var xattrs = query[schemaName+'_xattrs']||{};
 	for(var ff in query) if(!inSchema(ff,schemaName)) xattrs[ff] = query[ff];
 	valreq += ','+formatAs(xattrs, 'json');
@@ -282,8 +248,11 @@ module.exports = function(pg, conop, schemas){
 	as = as||schemaName;
 	if(!(fields||[]).length) fields=[schemaName+'_hash',schemaName+'_xattrs'].concat(Object.keys(schema));
 	
+	// if the field instance is {duration:'toEpoch'}
+	// run the pg function specified
+
 	return fields.reduce(function(p,c){
-	    return p+(inSchema(c,schemaName))?
+	    return p+ (c.constructor == Object)? '' :(inSchema(c,schemaName))?
 		schemaName+'.'+c+' as '+as+'__'+c+',':
 		'json_extract_path('+schemaName+'.'+schemaName+'_xattrs,'+c+') as '+as+'__'+c+',';
 	},'').slice(0,-1);
@@ -363,10 +332,10 @@ module.exports = function(pg, conop, schemas){
 		' ($$whatever$$); commit; begin; drop table '+oldSchemaName+'; commit;';
 	}
 	function create(schemaName, schema){
-	    var defaultFields = {hash:'varchar(31)', xattrs:'json'};
+	    var defaultFields = {hash:HASHTYPE, xattrs:'json'};
 	    var qq = 'begin; create table '+schemaName+' (';
 	    for(var ff in schema)
-		qq += ff+' '+((schema[ff][0]==='*')?('varchar(31)'+((schema[ff].indexOf('[]')>-1)?'[]':'')):
+		qq += ff+' '+((schema[ff][0]==='*')?(HASHTYPE+((schema[ff].indexOf('[]')>-1)?'[]':'')):
 			      schema[ff])+',';
 	    for(var ff in defaultFields) qq += schemaName+'_'+ff +' '+ defaultFields[ff]+',';
 	    qq = qq.slice(0,-1) + '); commit;';

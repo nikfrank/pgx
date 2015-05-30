@@ -496,7 +496,7 @@ module.exports = function(pg, conop, schemas){
 
 // check for error, return throw something reasonable
 
-	var rreq = fmtret(options.returning);
+	var rreq = fmtret(options.returning, schemaName);
 	var areq= '', breq = '';
 
 	if(rreq !== '*'){
@@ -947,8 +947,20 @@ function dmfig(s){
     return '$'+ns+'$';
 }
 
+
 // this thing is a mess
 function fmtret(rop, schemaName, withas){
+    var outconversions = {
+	interval:function(ff){
+	    return '1000*date_part(\'epoch\', '+ ff + ') ';
+	}
+    };
+
+    var inconversions = {
+	interval:''
+    };
+
+
     var prefix;
     if(schemaName) prefix = schemas[schemaName].tableName;
     var pfx = prefix || '';
@@ -964,12 +976,29 @@ function fmtret(rop, schemaName, withas){
 	}else if(rop.constructor == Array){
 	    rreq = '';
 	    for(var i=0; i<rop.length; i++){
-		// check if is in schema, if not prepend schemaName_xattrs->
-		rreq += pfx + rop[i];
+		if((rop[i] === schemaName+'_hash')||(rop[i] === schemaName+'_xattrs')){
+		    rreq += pfx + rop[i];
+		    if(withas) rreq += ' as ' + schemaName + '__' + rop[i];
+		    rreq += ',';
 
-		if(withas) rreq += ' as ' + schemaName + '__' + rop[i];
+		}else if(rop[i] in schemas[schemaName].fields){
+		    // if is interval type, convert to epoch here
+		    if(schemas[schemaName].fields[rop[i]].type in outconversions){
+			rreq += outconversions[schemas[schemaName].fields[rop[i]]](pfx+rop[i]);
+			if(!withas) rreq += 'as '+(pfx+rop[i]);
+		    }else{
+			rreq += pfx + rop[i];
+		    }
 
-		rreq +=  ',';
+		    if(withas) rreq += ' as ' + schemaName + '__' + rop[i];
+
+		    rreq +=  ',';
+		}else{
+		    // auto xattrs depth reading ->
+		    rreq += 'json_extract_path('+schemaName+'.'+schemaName+'_xattrs,'+rop[i]+') as '+
+			pfx+'__'+rop[i]+',';
+		}
+
 	    }
 	    rreq = rreq.slice(0,-1);
 	    rreq += '';

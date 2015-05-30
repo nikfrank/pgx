@@ -10,6 +10,7 @@ module.exports = {
     },{
 	person_hash:'person1',
 	name:'Nik Frank',
+	mainlang:'js',
 	fbid:'4',
 	country:'il',
 	teachers:['person2'],
@@ -17,6 +18,7 @@ module.exports = {
     },{
 	person_hash:'person2',
 	name:'Yaakov Moishe',
+	mainlang:'c#',
 	fbid:'5',
 	country:'us',
 	teachers:[],

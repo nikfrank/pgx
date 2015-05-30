@@ -1,40 +1,39 @@
 var assert = require('assert');
 
 var env = 'test';
-var config = require('./jconfig')[env];
+var config = require('./pconfig')[env];
 
 var conop = config.conop;
 
-var schemas = require('./jschemas');
+var schemas = require('./pschemas');
 
 var pg = require('pg');
-var pgx = require('./pgj')(pg, config.conop, schemas);
+var pgx = require('./pgx')(pg, config.conop, schemas);
 
 
 var teststatus = '';
 
+var tdata = require('./jdata');
+
 var fs = require('fs');
 var stringRes = {};
 
-// move the test json data to another file and require it
+// refactor these for the jdata
+// try to keep the tests lined up with jtests
 
-var tdata = require('./jdata');
-
-describe('pgj', function(){
+describe('pgx', function(){
 
     before(function(done){
-	pgx.boot({empty:true}, function(err, res){
-	    //check res equivalent to schemas
-	    if(err) done(JSON.stringify(err));
-	    pgx.stats(function(stats){
-		for(var sc in stats) if(stats[sc]) done('db not empty');
-		done();
-	    });
+	pgx.boot({empty:true}, function(res){
+	    //check res?
+	    done();
+	}, function(err){
+	    done(JSON.stringify(err));
 	});
     });
 
     after(function(done){
-	fs.writeFile("./stringResJ.json", JSON.stringify(stringRes), function(err){
+	fs.writeFile("./stringResP.json", JSON.stringify(stringRes), function(err){
 	    if(err) return done(err);
 	    console.log("The file was saved!");
 	    done();
@@ -45,56 +44,60 @@ describe('pgj', function(){
 
 //---------------------------------------------------------------------------
     describe('insert', function(){
-	describe('(stringOnly:true)', function(){it('ins string', function(done){
+	
+	describe('(stringOnly:true)', function(){it('ins string correct', function(done){
 	    var doc = tdata.person[0]; var ops = {stringOnly:true};
-	    pgx.create('person', doc, ops, function(err, insS){
-		if(typeof insS !== 'string') done('not string');
-		else stringRes['insertReturning'] = [insS, done(err)][0];
-	    });
-	});});
-	describe('()', function(){it('should return the inserted document', function(done){
-	    var doc = tdata.person[0];
-
-	    pgx.create('person', doc, function(err, res){
-		//check the res against the doc
-		done(err?JSON.stringify(err):undefined);
-	    });
-	});});
-
-
-	describe('(returning:[], stringOnly)', function(){ it('insRet string', function(done){
-	    var doc = tdata.person[1]; var ops = {returning:['person_hash', 'country']};
 	    pgx.insert('person', doc, ops, function(err, insS){
 		if(typeof insS !== 'string') done('not string');
-		else stringRes['insertReturning'] = [insS, done(err)][0];
+		else stringRes['insert'] = [insS, done(err)][0];
 	    });
-	});});
-	describe('(returning:[])', function(){ it('should return the reqd fields', function(done){
-	    var doc = tdata.person[1]; var ops = {returning:['person_hash', 'country']};
+	});});				   
+	describe('()', function(){ it('should return the inserted document', function(done){
+	    var doc = tdata.person[0]; var ops = {};
+	    
 	    pgx.insert('person', doc, ops, function(err, res){
 		//check the res against the doc
 		done(err?JSON.stringify(err):undefined);
 	    });
 	});});
-	describe('(returning:[xattr], stringOnly)', function(){ it('insRetX string', function(done){
-	    var doc = tdata.person[1]; var ops = {returning:['person_hash', 'mainlang']};
-	    pgx.insert('person', doc, ops, function(err, insS){
+
+	describe('(returning:[], stringOnly:true)', function(){it('insRet string correct', function(done){
+	    var doc = tdata.person[1]; var ops = {returning:['person_hash', 'country']};
+	    pgx.insert('rule', doc, ops, function(err, insS){
+		if(typeof insS !== 'string') done('not string');
+		else stringRes['insertReturning'] = [insS, done(err)][0];
+	    });
+	});});
+	describe('(returning:[])', function(){it('should return the reqd fields', function(done){
+	    var doc = tdata.person[1]; var ops = {returning:['person_hash', 'country']};
+
+	    pgx.insert('rule', doc, ops, function(err, res){
+		//check the res against the fields map doc
+		done(err?JSON.stringify(err):undefined);
+	    });
+	});});
+
+	describe('(returning:[xattr], stringOnly:true)', function(){it('insRetX string correct', function(done){
+	    var doc = tdata.person[2]; var ops = {returning:['person_hash', 'mainlang']};
+	    pgx.insert('rule', doc, ops, function(err, insS){
 		if(typeof insS !== 'string') done('not string');
 		else stringRes['insertReturningXattr'] = [insS, done(err)][0];
 	    });
 	});});
-	describe('(returning:[xattr])', function(){ it('should return the reqd fields', function(done){
-	    var doc = tdata.person[1]; var ops = {returning:['person_hash', 'country']};
-	    pgx.insert('person', doc, ops, function(err, res){
+	describe('(returning:[xattr])', function(){it('should return the reqd fields + xattr', function(done){
+	    var doc = tdata.person[2]; var ops = {returning:['person_hash', 'mainlang']};
+
+	    pgx.insert('rule', doc, ops, function(err, res){
 		//check the res against the fields map doc
 		done(err?JSON.stringify(err):undefined);
 	    });
 	});});
 
 // this doesn't work for xattrs cols
-	describe('(returning:[invalidXattr])', function(){ it('ret invXattr as null?', function(done){
+	describe('(returning:[invalidXattr])', function(){it('should return the reqd xattr as null?', function(done){
 	    var doc = tdata.person[2]; var ops = {returning:['person_hash', 'lang']};
-	    pgx.insert('person', doc, ops, function(err, res){
+
+	    pgx.insert('rule', doc, ops, function(err, res){
 		//check the res against the fields map doc
 		done(err?JSON.stringify(err):undefined);
 	    });
@@ -102,19 +105,19 @@ describe('pgj', function(){
 //
 //
 
-	describe('batch(stringOnly)', function(){ it('insert, return batch of docs', function(done){
-	    var docs = tdata.school; var ops = {stringOnly:true};
+	describe('batch(stringOnly)', function(){it('insBatch string', function(done){
+	    var docs = tdata.shool; var ops = {stringOnly:true};
 
-	    pgx.insert('school', docs, ops, function(err, insS){
+	    pgx.batchInsert('school', docs, ops, function(err, insS){
 		if(typeof insS !== 'string') done('not string');
 		else stringRes['insertBatch'] = [insS, done(err)][0];
 	    });
 	});});
-	
-	describe('batch()', function(){ it('insert, return batch of docs', function(done){
-	    var docs = tdata.school;
 
-	    pgx.insert('school', docs, function(err, res){
+	describe('batch()', function(){it('insert and return batch of docs', function(done){
+	    var docs = tdata.school; var ops = {};
+
+	    pgx.batchInsert('school', docs, ops, function(err, res){
 		//check the res against the doc
 		console.log('res',res);
 		console.log('err',err);
@@ -151,11 +154,8 @@ describe('pgj', function(){
 	});
 
 	describe('()', function(){
-	    it('should read the inserted doc from earlier from the db', function(done){
-		pgx.read({person:{}}, function(err, people){
-		    console.log(people);
-		    done(err?JSON.stringify(err):undefined);
-		});
+	    it.skip('should read the inserted doc from earlier from the db', function(done){
+		//
 	    });
 	});
 
@@ -247,7 +247,7 @@ describe('pgj', function(){
 	});
 
 	describe('()', function(){
-	    it.skip('should update a record in the db', function(done){
+	    it('should update a record in the db', function(done){
 		done();
 	    });
 	});
@@ -288,4 +288,3 @@ describe('pgj', function(){
     });
 //---------------------------------------------------------------------------
 });
-

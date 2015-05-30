@@ -1,5 +1,8 @@
-
 todo (testing)
+---
+
+reimplement tests for pschemas
+
 ---
 
 batchInsert test verify totals
@@ -28,7 +31,7 @@ empty boot db
 
 batch insert some records --> need in testdata.js
 
-json-depth read ((?))
+json-depth read (auto for xattr & into json fields)
 
 array $contains item, array
 
