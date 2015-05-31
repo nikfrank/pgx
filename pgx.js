@@ -992,8 +992,8 @@ function fmtret(rop, schemaName, withas){
 		    rreq +=  ',';
 		}else{
 		    // auto xattrs depth reading ->
-		    rreq += 'json_extract_path('+schemaName+'.'+schemaName+'_xattrs,'+rop[i]+') as '+
-			pfx+'__'+rop[i]+',';
+		    rreq += 'json_extract_path('+schemaName+'.'+schemaName+'_xattrs,\''+rop[i]+'\') as '+
+			rop[i]+',';
 		}
 
 	    }

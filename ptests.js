@@ -33,6 +33,9 @@ describe('pgx', function(){
     });
 
     after(function(done){
+
+	// empty out the database
+
 	fs.writeFile("./pStringRes.json", JSON.stringify(stringRes), function(err){
 	    if(err) return done(err);
 	    console.log("The file was saved!");
@@ -78,7 +81,7 @@ describe('pgx', function(){
 	});});
 
 	describe('(returning:[xattr], stringOnly:true)', function(){it('insRetX string correct', function(done){
-	    var doc = tdata.person[2]; var ops = {returning:['person_hash', 'mainlang']};
+	    var doc = tdata.person[2]; var ops = {returning:['person_hash', 'mainlang'], stringOnly:true};
 	    pgx.insert('person', doc, ops, function(err, insS){
 		if(typeof insS !== 'string') done('not string: '+JSON.stringify(insS));
 		else stringRes['insertReturningXattr'] = [insS, done(err)][0];
@@ -89,11 +92,10 @@ describe('pgx', function(){
 
 	    pgx.insert('person', doc, ops, function(err, res){
 		//check the res against the fields map doc
+console.log(res);
 		done(err?JSON.stringify(err):undefined);
 	    });
 	});});
-
-// this doesn't work for xattrs cols
 	describe('(returning:[invalidXattr])', function(){it('should return the reqd xattr as null?', function(done){
 	    var doc = tdata.person[2]; var ops = {returning:['person_hash', 'lang']};
 
@@ -106,7 +108,7 @@ describe('pgx', function(){
 //
 
 	describe('batch(stringOnly)', function(){it('insBatch string', function(done){
-	    var docs = tdata.shool; var ops = {stringOnly:true};
+	    var docs = tdata.school; var ops = {stringOnly:true};
 
 	    pgx.batchInsert('school', docs, ops, function(err, insS){
 		if(typeof insS !== 'string') done('not string: '+JSON.stringify(insS));
@@ -119,8 +121,8 @@ describe('pgx', function(){
 
 	    pgx.batchInsert('school', docs, ops, function(err, res){
 		//check the res against the doc
-		console.log('res',res);
-		console.log('err',err);
+//		console.log('res',res);
+//		console.log('err',err);
 		done(err?JSON.stringify(err):null);
 	    });
 	});});
