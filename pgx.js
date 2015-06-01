@@ -133,15 +133,16 @@ module.exports = function(pg, conop, schemas){
 		client.query(treq, function(ierr, ires){
 		    done();
 		    if(ierr) ierr = {batcherr:ierr, string:treq};
-// clean up xattrs
-// loop through the result
 
-		    ires = (ires||{rows:[]}).rows.map(function(r){
-			if((r[schemaName+'_xattrs'] === null)||
-			   (JSON.stringify(r[schemaName+'_xattrs'])==='{}')){
-			    delete r[schemaName+'_xattrs'];
+		    // clean nulls out of xattrs
+		    ires = (ires||{rows:[]}).rows.map(function(retres){
+			// flatten xattrs here
+			if(schemaName+'_xattrs' in (retres||{})){
+			    for(var ff in retres[schemaName+'_xattrs'])
+				retres[ff] = retres[schemaName+'_xattrs'][ff];
+			    delete retres[schemaName+'_xattrs'];
 			}
-			return r;
+			return retres;
 		    });
 
 		    return callback(ierr, ires);
