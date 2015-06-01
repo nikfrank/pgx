@@ -51,12 +51,15 @@ var checkStr = function(name, done){
     };
 };
 
-var checkObj = function(obj, done){
+var checkObj = function(obj, done, appToRes){
+    appToRes = appToRes||function(r){return r};
     return function(err, res){
 	if(err) return done(JSON.stringify(err));
-console.log('testing '+JSON.stringify(obj)+' to '+JSON.stringify(res));
+//console.log(JSON.stringify(obj));
+//console.log(JSON.stringify(res));
+//console.log(' ');
 	try{
-	    assert.deepEqual(res, obj);
+	    assert.deepEqual(appToRes(res), obj);
 	}catch(e){
 	    return done(JSON.stringify(obj)+' isn\'t '+JSON.stringify(res));
 	}
@@ -73,61 +76,43 @@ console.log('testing '+JSON.stringify(obj)+' to '+JSON.stringify(res));
 	});});
 	describe('()', function(){ it('should return the inserted document', function(done){
 	    var doc = tdata.person[0]; var ops = {};
-	    
 	    pgx.insert('person', doc, ops, checkObj(tdata.person[0], done));
 	});});
-
+	// returning
 	describe('(returning:[], stringOnly:true)', function(){it('insRet string correct', function(done){
 	    var doc = tdata.person[1]; var ops = {returning:['person_hash', 'country'], stringOnly:true};
 	    pgx.insert('person', doc, ops, checkStr('insertReturning', done));
 	});});
 	describe('(returning:[])', function(){it('should return the reqd fields', function(done){
 	    var doc = tdata.person[1]; var ops = {returning:['person_hash', 'country']};
-
-	    pgx.insert('person', doc, ops, function(err, res){
-		//check the res against the fields map doc
-		done(err?JSON.stringify(err):undefined);
-	    });
+	    var partPerson = {}; ops.returning.forEach(function(r){partPerson[r] = doc[r]});
+	    pgx.insert('person', doc, ops, checkObj(partPerson, done));
 	});});
-
+	// xattrs
 	describe('(returning:[xattr], stringOnly:true)', function(){it('insRetX string correct', function(done){
 	    var doc = tdata.person[2]; var ops = {returning:['person_hash', 'mainlang'], stringOnly:true};
 	    pgx.insert('person', doc, ops, checkStr('insertReturningXattr', done));
 	});});
 	describe('(returning:[xattr])', function(){it('should return the reqd fields + xattr', function(done){
 	    var doc = tdata.person[2]; var ops = {returning:['person_hash', 'mainlang']};
-
-	    pgx.insert('person', doc, ops, function(err, res){
-		//check the res against the fields map doc
-console.log(res);
-		done(err?JSON.stringify(err):undefined);
-	    });
+	    var partPerson = {}; ops.returning.forEach(function(r){partPerson[r] = doc[r]});
+	    pgx.insert('person', doc, ops, checkObj(partPerson, done));
 	});});
-	describe('(returning:[invalidXattr])', function(){it('should return the reqd xattr as null?', function(done){
+	describe('(returning:[invalidXattr])', function(){it('should return invalidXattr as null', function(done){
 	    var doc = tdata.person[3]; var ops = {returning:['person_hash', 'lang']};
-
-	    pgx.insert('person', doc, ops, function(err, res){
-		//check the res against the fields map doc
-		done(err?JSON.stringify(err):undefined);
-	    });
+	    var partPerson = {}; ops.returning.forEach(function(r){partPerson[r] = doc[r]||null});
+	    pgx.insert('person', doc, ops, checkObj(partPerson, done));
 	});});
-//
-//
 
 	describe('batch(stringOnly)', function(){it('insBatch string', function(done){
 	    var docs = tdata.school; var ops = {stringOnly:true};
 	    pgx.batchInsert('school', docs, ops, checkStr('insertBatch', done));
 	});});
-
 	describe('batch()', function(){it('insert and return batch of docs', function(done){
-	    var docs = tdata.school; var ops = {};
-
-	    pgx.batchInsert('school', docs, ops, function(err, res){
-		//check the res against the doc
-//		console.log('res',res);
-//		console.log('err',err);
-		done(err?JSON.stringify(err):null);
-	    });
+	    var ss = 'school'; var docs = tdata[ss]; var ops = {};
+	    pgx.batchInsert(ss, docs, ops, checkObj(docs, done, function(res){
+		return res.sort(function(a,b){ return a[ss+'_hash'] > b[ss+'_hash'];});
+	    }));
 	});});
 
 	after(function(){ teststatus = 'insert'; console.log('inserts done');});

@@ -132,9 +132,19 @@ module.exports = function(pg, conop, schemas){
 
 		client.query(treq, function(ierr, ires){
 		    done();
-// clean up xattrs
 		    if(ierr) ierr = {batcherr:ierr, string:treq};
-		    return callback(ierr, (ires||{rows:[]}).rows);
+// clean up xattrs
+// loop through the result
+
+		    ires = (ires||{rows:[]}).rows.map(function(r){
+			if((r[schemaName+'_xattrs'] === null)||
+			   (JSON.stringify(r[schemaName+'_xattrs'])==='{}')){
+			    delete r[schemaName+'_xattrs'];
+			}
+			return r;
+		    });
+
+		    return callback(ierr, ires);
 		});
 	    }); 
 	};
@@ -689,16 +699,10 @@ console.log(scerr);//how?
 
 		    var boot = '';
 
-
-		    if(options.empty){
-			// drop all the old data
-
-			for(var oldSchemaName in oldschemas){
+		    // drop all the old data
+		    if(options.empty)
+			for(var oldSchemaName in oldschemas)
 			    boot += 'delete from '+oldSchemaName+'; ';
-			}
-		    }
-
-//console.log(JSON.stringify(oldschemas));
 
 		    for(var oldSchemaName in oldschemas){
 			if(!(oldSchemaName in schemas) && !options.nuboot){
