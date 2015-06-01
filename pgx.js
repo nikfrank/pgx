@@ -689,6 +689,15 @@ console.log(scerr);//how?
 
 		    var boot = '';
 
+
+		    if(options.empty){
+			// drop all the old data
+
+			for(var oldSchemaName in oldschemas){
+			    boot += 'delete from '+oldSchemaName+'; ';
+			}
+		    }
+
 //console.log(JSON.stringify(oldschemas));
 
 		    for(var oldSchemaName in oldschemas){

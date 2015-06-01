@@ -25,8 +25,6 @@ describe('pgx', function(){
 
     before(function(done){
 	pgx.boot({empty:true}, function(res){
-	    //check res?
-// this isn't booting to empty
 	    done();
 	}, function(err){
 	    done(JSON.stringify(err));
