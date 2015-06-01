@@ -26,6 +26,7 @@ describe('pgx', function(){
     before(function(done){
 	pgx.boot({empty:true}, function(res){
 	    //check res?
+// this isn't booting to empty
 	    done();
 	}, function(err){
 	    done(JSON.stringify(err));
@@ -45,31 +46,42 @@ describe('pgx', function(){
 
 //---------------------------------------------------------------------------
 
+var checkStr = function(name, done){
+    return function(err, insS){
+	if(typeof insS !== 'string') done('not string: '+JSON.stringify(insS));
+	else stringRes[name] = [insS, done(err)][0];
+    };
+};
+
+var checkObj = function(obj, done){
+    return function(err, res){
+	if(err) return done(JSON.stringify(err));
+console.log('testing '+JSON.stringify(obj)+' to '+JSON.stringify(res));
+	try{
+	    assert.deepEqual(res, obj);
+	}catch(e){
+	    return done(JSON.stringify(obj)+' isn\'t '+JSON.stringify(res));
+	}
+	done();
+    };
+};
+
 //---------------------------------------------------------------------------
     describe('insert', function(){
 	
 	describe('(stringOnly:true)', function(){it('ins string correct', function(done){
 	    var doc = tdata.person[0]; var ops = {stringOnly:true};
-	    pgx.insert('person', doc, ops, function(err, insS){
-		if(typeof insS !== 'string') done('not string: '+JSON.stringify(insS));
-		else stringRes['insert'] = [insS, done(err)][0];
-	    });
-	});});				   
+	    pgx.insert('person', doc, ops, checkStr('insert', done));
+	});});
 	describe('()', function(){ it('should return the inserted document', function(done){
 	    var doc = tdata.person[0]; var ops = {};
 	    
-	    pgx.insert('person', doc, ops, function(err, res){
-		//check the res against the doc
-		done(err?JSON.stringify(err):undefined);
-	    });
+	    pgx.insert('person', doc, ops, checkObj(tdata.person[0], done));
 	});});
 
 	describe('(returning:[], stringOnly:true)', function(){it('insRet string correct', function(done){
 	    var doc = tdata.person[1]; var ops = {returning:['person_hash', 'country'], stringOnly:true};
-	    pgx.insert('person', doc, ops, function(err, insS){
-		if(typeof insS !== 'string') done('not string: '+JSON.stringify(insS));
-		else stringRes['insertReturning'] = [insS, done(err)][0];
-	    });
+	    pgx.insert('person', doc, ops, checkStr('insertReturning', done));
 	});});
 	describe('(returning:[])', function(){it('should return the reqd fields', function(done){
 	    var doc = tdata.person[1]; var ops = {returning:['person_hash', 'country']};
@@ -82,10 +94,7 @@ describe('pgx', function(){
 
 	describe('(returning:[xattr], stringOnly:true)', function(){it('insRetX string correct', function(done){
 	    var doc = tdata.person[2]; var ops = {returning:['person_hash', 'mainlang'], stringOnly:true};
-	    pgx.insert('person', doc, ops, function(err, insS){
-		if(typeof insS !== 'string') done('not string: '+JSON.stringify(insS));
-		else stringRes['insertReturningXattr'] = [insS, done(err)][0];
-	    });
+	    pgx.insert('person', doc, ops, checkStr('insertReturningXattr', done));
 	});});
 	describe('(returning:[xattr])', function(){it('should return the reqd fields + xattr', function(done){
 	    var doc = tdata.person[2]; var ops = {returning:['person_hash', 'mainlang']};
@@ -97,7 +106,7 @@ console.log(res);
 	    });
 	});});
 	describe('(returning:[invalidXattr])', function(){it('should return the reqd xattr as null?', function(done){
-	    var doc = tdata.person[2]; var ops = {returning:['person_hash', 'lang']};
+	    var doc = tdata.person[3]; var ops = {returning:['person_hash', 'lang']};
 
 	    pgx.insert('person', doc, ops, function(err, res){
 		//check the res against the fields map doc
@@ -109,11 +118,7 @@ console.log(res);
 
 	describe('batch(stringOnly)', function(){it('insBatch string', function(done){
 	    var docs = tdata.school; var ops = {stringOnly:true};
-
-	    pgx.batchInsert('school', docs, ops, function(err, insS){
-		if(typeof insS !== 'string') done('not string: '+JSON.stringify(insS));
-		else stringRes['insertBatch'] = [insS, done(err)][0];
-	    });
+	    pgx.batchInsert('school', docs, ops, checkStr('insertBatch', done));
 	});});
 
 	describe('batch()', function(){it('insert and return batch of docs', function(done){

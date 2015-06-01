@@ -793,7 +793,7 @@ function fmtwhere(schemaName, query, init){
 
 		// match the array?
 		wreq += tt+ff + ' @> ARRAY[';
-		for(var i=query[ff].length; i-->0;){
+		for(var i=0; i<query[ff].length; ++i){
 		    var dm = dmfig(query[ff][i]);
 		    wreq += dm + query[ff][i] + dm + ', ';
 		}
@@ -801,7 +801,7 @@ function fmtwhere(schemaName, query, init){
 		wreq += ']::'+schema.fields[ff].type+' and '
 
 		wreq += tt+ff + ' <@ ARRAY[';
-		for(var i=query[ff].length; i-->0;){
+		for(var i=0; i<query[ff].length; ++i){
 		    var dm = dmfig(query[ff][i]);
 		    wreq += dm + query[ff][i] + dm + ', ';
 		}
@@ -830,7 +830,7 @@ function fmtwhere(schemaName, query, init){
 
 			    // where value in [val,..]
 			    wreq += tt+ff + ' = any (ARRAY[';
-			    for(var i=query[ff][kk].length; i-->0;){
+			    for(var i=0; i<query[ff][kk].length; ++i){
 				var dm = dmfig(query[ff][kk][i]);
 				wreq += dm + query[ff][kk][i] + dm + ', ';
 			    }
@@ -886,7 +886,7 @@ function fmtwhere(schemaName, query, init){
 
 			    // where value in [val,..]
 			    wreq += tt+ff + ' = any (ARRAY[';
-			    for(var i=query[ff][kk].length; i-->0;){
+			    for(var i=0; i<query[ff][kk].length; ++i){
 				var dm = dmfig(query[ff][kk][i]);
 				wreq += dm + query[ff][kk][i] + dm + ', ';
 			    }
@@ -1023,7 +1023,7 @@ function formatas(data, type, dm, old){
 	    if(!data.length) return ('ARRAY[]::'+schema.fields[ff].type);
 	    else{
 		ret += 'ARRAY[';
-		for(var i=data.length; i-->0;) ret += dm + data[i] + dm + ',';
+		for(var i=0; i<data.length; ++i) ret += dm + data[i] + dm + ',';
 		ret = ret.slice(0,-1);
 		ret += ']';
 		
@@ -1054,7 +1054,7 @@ function formatas(data, type, dm, old){
 		for(var ff in data) old[ff] = data[ff];
 		data = old;
 	    }else if(old.constructor == Array){
-		for(var i=0; i<data.length; i++){
+		for(var i=0; i<data.length; ++i){
 		    if(!old[i]) old[i] = {};
 		    for(var ff in data[i]) old[i][ff] = data[i][ff];
 		}
@@ -1070,7 +1070,7 @@ function formatas(data, type, dm, old){
 	    else if(!data.length) return 'ARRAY[]::json[]';
 	    else{
 		ret += 'ARRAY[';
-		for(var i=data.length; i-->0;)
+		for(var i=0; i<data.length; ++i)
 		    ret += dm + JSON.stringify(data[i]) + dm + '::json,';
 		ret = ret.slice(0,-1);
 		ret += ']';
@@ -1091,7 +1091,7 @@ function formatas(data, type, dm, old){
 	    else if(!data.length) return 'null';
 	    else{
 		ret += 'ARRAY[';
-		for(var i=data.length; i-->0;) ret += data[i] + ',';
+		for(var i=0; i<data.length; ++i) ret += data[i] + ',';
 		ret = ret.slice(0,-1);
 		ret += ']';
 		

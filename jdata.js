@@ -23,6 +23,14 @@ module.exports = {
 	country:'us',
 	teachers:[],
 	schools:['school0', 'school1']
+    },{
+	person_hash:'person3',
+	name:'Nir Kaufman',
+	mainlang:'ES6',
+	fbid:'6',
+	country:'il',
+	teachers:[],
+	schools:['school1']
     }],
 
     school:[{

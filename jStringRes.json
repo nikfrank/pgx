@@ -1,0 +1,1 @@
+{"insertReturning":"insert into person (person_hash,person_xattrs,country,fbid,name,schools,teachers) values ($lll$person0$lll$,$lll${}$lll$::json,$lll$il$lll$,$lll$3$lll$,$lll$Nox Freebird$lll$,ARRAY[$lll$school0$lll$],ARRAY[$lll$person1$lll$,$lll$person2$lll$]) returning "}
