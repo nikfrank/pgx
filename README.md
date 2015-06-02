@@ -3,6 +3,8 @@ pgx odm for node- postgres (npm pg)
 
 pgx makes PostgreSQL feel like NoSQL - but only when you want.
 
+[![Build Status](https://travis-ci.org/nikfrank/pgx.svg?branch=master)](https://travis-ci.org/nikfrank/pgx)
+
 (( note to the reader - things in double parens (as this note) are yet unimplemented ))
 
 install::
