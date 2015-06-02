@@ -18,7 +18,7 @@ install::
 
 config.connection is for pg and is formatted as follows:
 
-    {
+    module.exports = {
     	conop:{
     	    user: 'nik',
     	    password: 'niksPassword',
@@ -26,13 +26,13 @@ config.connection is for pg and is formatted as follows:
     	    host: 'localhost',
     	    port: 5432
     	}
-    }
+    };
 
 schemas can be extended as you please and passed around, they look like this:
 
     module.exports = {
         thing:{
-    	    tableName:'niks_things',
+    	    tableName:'thing',
     	    fields:{
                 whatever:{
                     type:'json'
@@ -43,7 +43,7 @@ schemas can be extended as you please and passed around, they look like this:
                 }
     	    }
         }
-    }
+    };
 
 where this example is being "require"d then passed to pgx
 
@@ -51,23 +51,26 @@ the type field is a postgres type
 
 defval is a default value passed directly to postgres
 
-there's also the ability to define join types, which store a hash to join to (right now they do nothing though)
+((you'll see I define "jointype" on pointer fields. This is in anticipation of implementing a foreign keys feature))
 
 two default fields are defined on every table:
 
     {
         schemaName_hash: 'varchar(31)', // hash assigned at creation, used for joins
-        
         schemaName_xattrs: 'json' // used to hold data not fitting into the schema
     }
 
 do not overwrite these. it will throw postgres errors, you will find this sentence and it will explain your stupid
 
-see schemas.js for an example for a language app
 
-("permissions" and "required" fields listed there are not implemented)
-this is a feature of these schemas - feel free to define whatever the hell you want on them, and then use
-the schemas in a middleware to verify data, or filter based on column level permissions...
+schemaName_hash field is filled in for you if not included in your insert statement
+
+
+schemaName_xattrs stores fields you write which aren't part of the schema into a JSON object
+
+on reading this data, it is flattened into the doc as if that data was part of the schema (feels like mongo)
+
+see the pschemas.js for an example
 
 
 API
@@ -80,14 +83,14 @@ boot
 
     pgx.boot(options, function(a){ res.json(a); } );
 
-pgx.boot copies data in existing tables, makes new tables to the schemas, replaces the data.
+pgx.boot copies data in existing tables, makes new tables to the schemas, replaces the data and saves the schemas
+to a table called schemas (with one JSON column).
 
 I put this in a get route, run it on update, then push the code again without the route
-it should be idempotent, but I don't really trust it
+it should be idempotent, I'd probably back up production data if I were you.
 
 you have to run this before doing anything, in order to create the tables in your database.
 
-there's probably a better solution (like checking and updating on require)
 
 pgx.boot options:
 
@@ -95,11 +98,19 @@ pgx.boot options:
 
 if true, boot will not transfer data - to boot an empty db
 
-maps
+((maps
 
-    {maps: { schemaName: function(item){ return mappedItem; },.. } }
+    {maps: { schemaName: function(item){ return mappedItem; },.. } } // not impl. haven't needed it, put it here to remember
 
-you can define a map function to run on each row of the data per schema
+you can define a map function to run on each row of the data per schema))
+
+
+insert
+---
+
+    pgx.insert(schemaName, document, options, callback(err, dataInserted))
+
+    pgx.insertBatch(schemaName, [doc1, doc2,..], options, callback(err, data))
 
 
 read
@@ -109,6 +120,9 @@ read
 
 schemaNameOrNames = 'schemaName' for normal reads, ['schemaName1','schemaName2',..] for multischema/(join) reads
 
+(( the multischema reads are being rebuilt with the "WITH" keyword of postgres. they're a tad wonky right now ))
+
+
 update/upsert
 ---
 
@@ -117,41 +131,25 @@ update/upsert
 
 input has format {where:{key:val,..}, data/query:{key:val,..}}
 
-insert
----
-
-    pgx.insert(schemaName, query, options, callback(err, dataInserted))
-
-    pgx.insertBatch(schemaName, [querys], options, callback(err, data))
 
 erase
 ---
 
     pgx.erase(schemaName, query, options, callback(err, data))
 
+
 schemaVerify
 ---
 
     (( pgx.schemaVerify() ))
 
+
 on the original pg object. unconventional? probably.
 
 in addition to the original pg.connect -> client -> query -> ... routine
 
-(( all of these can be called omitting the options param ))
+all of these can be called omitting the options param
 
-you can write and read data not listed in your schemas
-
-it gets written to a schemaName_xattrs json column, and unpackaged on read
-
-basically it feels like MongoDB where you are unconstrained by your schema
-
-except that the returning clause (in options) doesn't work for extended fields yet.
-
-(listed as "json depth read" in todo code)
-
-
-NO TABLE CAN BE CALLED 'schemas'. I use that.
 
 examples
 =======
@@ -163,7 +161,7 @@ simple read
         return res.json(response);
     });
 
-multischema read
+multischema read (!!! don't use this !!!)
 
     pgx.read(['lesson', 'topic'], {
         topic:{topic_hash:req.body.topic_hash},
@@ -181,14 +179,10 @@ multischema read
         return res.json(response);
     });
 
-multischema read only works for schema trees of depth 2 [rootSchema, leafSchemas,.. ]
-
-I intend to rectify this, but it's a bit above my pay grade right now
-
 for the love of your sanity, DO NOT put an empty POJO as a query. I'll fix that later.
 
 (( currently unimplemented is the use of the 'join' sql word. multischema reads are done by implied outer join and are 
-likely pretty slow ))
+likely pretty slow ... I'm rewriting this with WITH, so wait for that))
 
 
 insert
@@ -225,12 +219,18 @@ stringOnly
 
     {stringOnly: false}
 
-the callback will be passed the SQL string. I suppose it could also just return it but
-I went with the callback to preserve the async stuff in case a json update requires a
-read in order to make the SQL string.
+the callback will be passed the SQL string.
 
+available on: everything but boot
 
-available on: insert, read, ...
+stringSync
+---
+
+    {stringSync: false}
+
+the function will return the SQL string. This overrides stringOnly.
+
+available on: insert
 
 
 limit
@@ -278,10 +278,10 @@ obviously it's a good idea to use this to minimize the data read from cloud dbs
 
 just pass it an array of strings of the column (field) names you want
 
-(( currently does not work for extended attribute fields ))
+also you can ask for fields not part of the schema. pgx does the psql-json work for you.
 
 
-available on: read, read multischema, everything?
+available on: read, read multischema, insert, update
 
 
 valreqOnly
@@ -293,18 +293,8 @@ this is used internally (but available externally) to clip the returning clause 
 insert statement (and callback just the SQL string). It's used for lazying batch insert.
 
 
-available on: insert
+available on: insert - but don't use it.
 
-
-stringSync
----
-
-    {stringSync: false}
-
-also used internally, will return the insert string synchronously
-
-
-available on: insert
 
 
 noinsert
@@ -314,6 +304,8 @@ noinsert
 
 this is on update (which is really upsert despite the name) which if true will sent a
 noent error to the callback if there isn't an entry to update
+
+(( psql now has an upsert word that I'm looking into ))
 
 
 available on: update
@@ -326,34 +318,13 @@ xorjson
 
 if true will overwrite fields in json, false will overwrite the entire json
 
-(( I don't think this is being tested right now, for json or json[] ))
+(( this isn't being tested right now, for json or json[] ))
 
 
 available on: update
 
 
-empty
----
 
-    {empty: false}
-
-whether to make the new tables empty from pgboot
-
-
-available on: boot
-
-
-maps
----
-
-    {maps: {schemaName: {function(rowAsJson){ return mappedRow; } },.. } }
-
-runs the javascript array map using the passed function on each row in the schema when transferring on reboot
-
-use this if you rename a column, or want to edit some of the data
-
-
-available on: boot
 
 
 ---
@@ -373,7 +344,7 @@ read
 
 dev: true
 
-todo: from arrays, json?, join read
+todo: from arrays, json?
 
 tests: {stringOnly:true} ish, {limit:3} ?, orderby ?
 
@@ -389,7 +360,7 @@ update
 
 dev: true
 
-tests:
+tests: none active
 
 todo: {stringOnly:true}, {}, {noinsert:true}
 
@@ -402,12 +373,9 @@ insert
 
 dev: true
 
-tests: {stringOnly: true} ish, {} ish, {returning:[]} ish
+tests: stringOnly, basic use, return values [& from xattr]
 
-tests should verify more data
-returning test uses [] - needs to be verified with data
-
-docs:
+docs: simple examples (copy more from tests)
 
 
 
@@ -416,9 +384,9 @@ insertBatch
 
 dev: true
 
-tests: {strinOnly:true} ish, {} ish
+tests: basic use, stringOnly, return values
 
-docs:
+docs: examples in this file
 
 
 
@@ -427,7 +395,7 @@ erase
 
 dev: true
 
-tests: uidquery -> erase
+tests: none active
 
 docs:
 
@@ -438,7 +406,7 @@ boot
 
 dev: true
 
-tests: rewrite all tests for empty, init, schemachange
+tests: not really, but it works
 
 docs:
 
