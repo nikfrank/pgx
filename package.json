@@ -4,6 +4,7 @@
   "homepage": "http://nikfrank.com/#/works/pgx",
   "description": "Simple as pie ODM for pg postgres module",
   "dependencies": {
+      "pg":"latest",
     "btoa": "1.1.1",
     "crypto": "0.0.3"
   },
