@@ -670,7 +670,7 @@ module.exports = function(pg, conop, schemas){
 
 		var failKeys = skeys.filter(function(sk){
 		    // check that none of the sk are in keys
-		    return (keys.indexOf(sk)!==-1);
+		    return (keys.indexOf(sk)!==-1)||(sk.indexOf('_hash')>-1)||(sk.indexOf('_xattrs')>-1);
 		});
 
 		var failNames = tnames.filter(function(tn){
@@ -684,7 +684,7 @@ module.exports = function(pg, conop, schemas){
 		});
 
 		var errs = '';
-		if(failKeys.length) errs += failKeys.join()+' are reserved words\n';
+		if(failKeys.length) errs += failKeys.join()+' are reserved words (by psql or pgx)\n';
 		if(failNames.length) errs += failNames.join()+' are reserved words\n';
 		if(failTypes.length) errs += failTypes.join()+' are not real types';
 
