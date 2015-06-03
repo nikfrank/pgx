@@ -2,7 +2,7 @@
   "name": "pgx",
   "version": "0.1.12",
   "homepage": "http://nikfrank.com/#/works/pgx",
-  "description": "Simple as pie ODM for pg postgres module",
+  "description": "Simple as pie ORM for pg postgres module",
   "dependencies": {
     "pg": "latest",
     "btoa": "1.1.1",
@@ -15,7 +15,7 @@
   "keywords": [
     "pgx",
     "postgres",
-    "odm"
+    "orm"
   ],
   "devDependencies": {
     "json-nice": "^1.0.1",

@@ -1,11 +1,12 @@
-pgx odm for node- postgres (npm pg)
+pgx orm for node
 ===
+
+- postgres (npm pg)
+
 
 pgx makes PostgreSQL feel like NoSQL - but only when you want.
 
 [![Build Status](https://travis-ci.org/nikfrank/pgx.svg?branch=master)](https://travis-ci.org/nikfrank/pgx)
-
-(( note to the reader - things in double parens (as this note) are yet unimplemented ))
 
 install::
 
@@ -60,15 +61,20 @@ two default fields are defined on every table:
         schemaName_xattrs: 'json' // used to hold data not fitting into the schema
     }
 
-do not overwrite these. it will throw postgres errors, you will find this sentence and it will explain your stupid
+if you try to overwrite these, it will not work.
 
 
 schemaName_hash field is filled in for you if not included in your insert statement
+
+this is basically a foreign 
 
 
 schemaName_xattrs stores fields you write which aren't part of the schema into a JSON object
 
 on reading this data, it is flattened into the doc as if that data was part of the schema (feels like mongo)
+
+so basically don't even think about it.
+
 
 see the pschemas.js for an example
 
@@ -76,7 +82,6 @@ see the pschemas.js for an example
 API
 ===
 ------
-
 
 boot
 ---
@@ -98,12 +103,16 @@ pgx.boot options:
 
 if true, boot will not transfer data - to boot an empty db
 
-((maps
+((maps))
 
-    {maps: { schemaName: function(item){ return mappedItem; },.. } } // not impl. haven't needed it, put it here to remember
+    {maps: { schemaName: function(item){ return mappedItem; },.. } }
+    // not impl. haven't needed it, put it here to remember
 
-you can define a map function to run on each row of the data per schema))
+you can define a map function to run on each row of the data per schema
 
+
+
+all of the following can be called omitting the options param
 
 insert
 ---
@@ -147,8 +156,6 @@ schemaVerify
 on the original pg object. unconventional? probably.
 
 in addition to the original pg.connect -> client -> query -> ... routine
-
-all of these can be called omitting the options param
 
 
 examples

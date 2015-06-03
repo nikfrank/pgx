@@ -24,6 +24,11 @@ module.exports = function(pg, conop, schemas){
 	var qreq = 'insert into '+schema.tableName+' (';
 	var valreq = ') values (';
 
+	if(typeof callback === 'function'){
+	    callback = options;
+	    options = {};
+	}
+
 // query undefined error
 
 	if(!((schemaName+'_hash') in query)){
@@ -116,6 +121,12 @@ module.exports = function(pg, conop, schemas){
 	var schema = schemas[schemaName];
 	var qreq = 'insert into '+schema.tableName+' (';
 	var valreq = ') values ';
+
+	if(typeof callback === 'function'){
+	    callback = options;
+	    options = {};
+	}	
+
 	var rreq = fmtret(options.returning, schemaName);
 
 	var foroptions = options;
@@ -184,6 +195,11 @@ module.exports = function(pg, conop, schemas){
 	// loop through query and where to grab only fields requested
 
 	var sreq = 'select '+urreq+' from '+schema.tableName+wreq+';';
+
+	if(typeof callback === 'function'){
+	    callback = options;
+	    options = {};
+	}
 
 	// select the record
 	pg.connect(conop, function(err, client, done) {
@@ -502,6 +518,11 @@ module.exports = function(pg, conop, schemas){
 	if(typeof schemaNameOrNames === 'string') schemaName = schemaNameOrNames;
 	var schema = schemas[schemaName];
 
+	if(typeof callback === 'function'){
+	    callback = options;
+	    options = {};
+	}
+
 // check for error, return throw something reasonable
 
 	var rreq = fmtret(options.returning, schemaName);
@@ -580,6 +601,11 @@ module.exports = function(pg, conop, schemas){
 
     pg.erase = function(schemaName, query, options, callback){
 	var schema = schemas[schemaName];
+
+	if(typeof callback === 'function'){
+	    callback = options;
+	    options = {};
+	}
 
 	if(options.deleteLinked){
 	    //delete all autojoined records too
