@@ -5,6 +5,7 @@ module.exports = {
 	name:'Nox Freebird',
 	fbid:'3',
 	country:'il',
+	gender:'m',
 	teachers:['person1', 'person2'],
 	schools:['school0']
     },{
@@ -13,6 +14,7 @@ module.exports = {
 	mainlang:'js',
 	fbid:'4',
 	country:'il',
+	gender:'m',
 	teachers:['person2'],
 	schools:['school0', 'school1']
     },{
@@ -21,6 +23,7 @@ module.exports = {
 	mainlang:'c#',
 	fbid:'5',
 	country:'us',
+	gender:'m',
 	teachers:[],
 	schools:['school0', 'school1']
     },{
@@ -29,6 +32,7 @@ module.exports = {
 	mainlang:'ES6',
 	fbid:'6',
 	country:'il',
+	gender:'m',
 	teachers:[],
 	schools:['school1']
     }],

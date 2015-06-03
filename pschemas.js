@@ -5,6 +5,7 @@ module.exports = {
 	    name:{type:'text'},
 	    fbid:{type:'text'}, // unique
 	    country:{type:'text'},
+	    gender:{type:'text'},
 	    teachers:{
 		type:'varchar(31)[]',
 		jointype:'person'

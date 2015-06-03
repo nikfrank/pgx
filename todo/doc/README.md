@@ -1,6 +1,7 @@
 stuff to doc
 ---
 
+dbstats
 
 alias upsert, insertBatch
 

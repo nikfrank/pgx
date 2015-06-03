@@ -75,6 +75,10 @@ if('write out all comparisons'&&false){
     };
 };
 
+var hashSort = function(ss){
+    return function(a,b){ return a[ss+'_hash'] > b[ss+'_hash'];}
+};
+
 //---------------------------------------------------------------------------
     describe('insert', function(){
 	
@@ -118,9 +122,7 @@ if('write out all comparisons'&&false){
 	});});
 	describe('batch()', function(){it('insert and return batch of docs', function(done){
 	    var ss = 'school'; var docs = tdata[ss]; var ops = {};
-	    pgx.batchInsert(ss, docs, ops, checkObj(docs, done, function(res){
-		return res.sort(function(a,b){ return a[ss+'_hash'] > b[ss+'_hash'];});
-	    }));
+	    pgx.batchInsert(ss, docs, ops, checkObj(docs, done, function(res){return res.sort(hashSort(ss));}));
 	});});
 
 	// check that duplicate hash insert fails
@@ -149,9 +151,7 @@ if('write out all comparisons'&&false){
 	});});
 	describe('()', function(){it('read persons', function(done){
 	    var query = {}; var ops = {}; var ss = 'person';
-	    pgx.read(ss, query, ops, checkObj(tdata.person, done, function(res){
-		return res.sort(function(a,b){ return a[ss+'_hash'] > b[ss+'_hash'];});
-	    }));
+	    pgx.read(ss, query, ops, checkObj(tdata.person, done, function(res){return res.sort(hashSort(ss));}));
 	});});
 	describe('({field:"val"}, stringOnly:true)', function(){it('read simple query string', function(done){
 	    var query = {name:'Nik Frank'}; var ops = {stringOnly:true}; var ss = 'person';
@@ -161,21 +161,36 @@ if('write out all comparisons'&&false){
 	    var query = {name:'Nik Frank'}; var ops = {}; var ss = 'person';
 	    pgx.read(ss, query, ops, checkObj([tdata.person[1]], done));
 	});});
+	describe('({f1:"v1", f2:"v2"}, stringOnly:true)', function(){it('read two fields string', function(done){
+	    var query = {country:'us', gender:'m'}; var ops = {stringOnly:true}; var ss = 'person';
+	    pgx.read(ss, query, ops, checkStr('readDoubleQuery', done));
+	});});
+	describe('({field:"val"})', function(){it('read persons by two fields', function(done){
+	    var query = {country:'us', gender:'m'}; var ops = {}; var ss = 'person';
+	    pgx.read(ss, query, ops, checkObj([tdata.person[2]], done));
+	});});
+	describe('({xfield:"xval"}, stringOnly:true)', function(){it('read xfield string', function(done){
+	    var query = {mainlang:'ES6'}; var ops = {stringOnly:true}; var ss = 'person';
+	    pgx.read(ss, query, ops, checkStr('readXfield', done));
+	});});
+	describe('({xfield:"xval"})', function(){it('read xfield string', function(done){
+	    var query = {mainlang:'ES6'}; var ops = {}; var ss = 'person';
+	    pgx.read(ss, query, ops, checkObj([tdata.person[3]], done));
+	});});
+	describe('({returning:["c1","c2"]}, stringOnly:true)', function(){it('read ret cols', function(done){
+	    var query = {gender:'m'}; var ops = {returning:['name','gender'], stringOnly:true}; var ss = 'person';
+	    pgx.read(ss, query, ops, checkStr('readRetCols', done));
+	});});
+	describe('({returning:["col1","col2"]})', function(){it('read ret cols', function(done){
+	    var query = {gender:'m'}; var ops = {returning:['name','gender']}; var ss = 'person';
+	    pgx.read(ss, query, ops, checkObj(tdata.person.filter(function(p){return p.gender === 'm';})
+					      .sort(hashSort(ss))
+					      .map(function(p){ return {name:p.name, gender:p.gender}}),
+					      done, function(res){return res.sort(hashSort(ss));}));
+	});});
 
 
-	describe('({jsonfield:{"key":"val"}})', function(){
-	    it.skip('should find docs matching the json->> subfield', function(done){
-		//
-	    });
-	});
-
-	describe('({xfield:"val"})', function(){
-	    it.skip('should find docs matching an xattr field', function(done){
-		//
-	    });
-	});
-
-	describe('({returning:["col1","col2"]})', function(){
+	describe('()', function(){
 	    it.skip('should find docs and return only the indicated columns', function(done){
 		//
 	    });
@@ -183,12 +198,6 @@ if('write out all comparisons'&&false){
 
 	describe('({returning:["col1","col2", "xcol"]})', function(){
 	    it.skip('should find docs and return only the indicated columns and xattrs', function(done){
-		//
-	    });
-	});
-
-	describe('([schema1, schema2])', function(){
-	    it.skip('should conduct a join read of schema1 and schema2 docs', function(done){
 		//
 	    });
 	});

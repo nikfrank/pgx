@@ -605,15 +605,68 @@ module.exports = function(pg, conop, schemas){
     };
 
 
-    pg.schemaVerify = function(){
-	// make sure there aren't any fields called 'group' or 'user' or starts with $
+
+    pg.schemaVerify = function(callback){
 	// make sure all jointypes exist
-	// make sure there's a primary serial key
+
+	var ktq = 'WITH allkeys AS (select word from pg_get_keywords()), alltypes AS '+
+	    '(select typname from pg_type), qqs as (select alltypes.typname, allkeys.word from '+
+	    'alltypes,allkeys) select row_to_json(stat) from (select * from allkeys) stat union '+
+	    'all select row_to_json(hmm) from (select * from alltypes) hmm;';
+
+	pg.connect(conop, function(err, client, done){
+	    if(err) return callback({connection_err:err});
+	    client.query(ktq, function(ierr, res){
+		if(ierr) return callback({key_type_query_err:ierr});
+		done();
+		var keys = [], types = [];
+		res.rows.forEach(function(row){
+		    var r = row.row_to_json;
+		    if('word' in r) keys.push(r.word);
+		    if('typname' in r) types.push(r.typname);
+		});
+
+		var skeys = [];
+		var tnames = [];
+		var ftypes = [];
+
+		for(ss in schemas){
+		    tnames.push(ss.tableName);
+		    for(k in ss.fields){
+			skeys.push(k);
+			ftypes.push(ss.fields[k].split('[')[0]);
+		    }
+		}
+
+		// check for interference with _hash and _xattrs
+
+		// check that all types fit into this list .split('[')[0]
+
+		var valid = true;
+
+		skeys.forEach(function(sk){
+		    // check that none of the sk are in keys
+		});
+
+		tnames.forEach(function(tn){
+		    // check that none of the tn are in keys
+		});
+
+		ftypes.forEach(function(ft){
+		    // check that all of the ft are in types
+		});
+		
+	    });
+	});
     };
+
+    pg.schemaVerify(function(err){
+	console.log(err);
+    });
 
 
     pg.dbstats = function(callback){
-	pg.connect(config.conop, function(err, client, done) {
+	pg.connect(conop, function(err, client, done) {
 	    if(err) return callback({connection_err:err});
 	    client.query('SELECT schemaname,relname,n_live_tup FROM pg_stat_user_tables '+
 			 '  ORDER BY n_live_tup DESC;', function(ierr, ires){

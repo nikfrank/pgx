@@ -9,6 +9,7 @@ module.exports = {
 	name:'text',
 	fbid:'text', // unique
 	country:'text',
+	gender:'text',
 	teachers:'*person[]',
 	schools:'*school[]'
     },
