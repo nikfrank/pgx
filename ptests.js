@@ -80,6 +80,15 @@ var hashSort = function(ss){
 };
 
 //---------------------------------------------------------------------------
+    describe('verify', function(){
+	it('checks the schema', function(done){
+	    pgx.schemaVerify(function(err){
+		done(err);
+	    });
+	});
+    });
+
+//---------------------------------------------------------------------------
     describe('insert', function(){
 	
 	describe('(stringOnly:true)', function(){it('ins string correct', function(done){
@@ -154,11 +163,11 @@ var hashSort = function(ss){
 	    pgx.read(ss, query, ops, checkObj(tdata.person, done, function(res){return res.sort(hashSort(ss));}));
 	});});
 	describe('({field:"val"}, stringOnly:true)', function(){it('read simple query string', function(done){
-	    var query = {name:'Nik Frank'}; var ops = {stringOnly:true}; var ss = 'person';
+	    var query = {fullname:'Nik Frank'}; var ops = {stringOnly:true}; var ss = 'person';
 	    pgx.read(ss, query, ops, checkStr('readSimpleQuery', done));
 	});});
 	describe('({field:"val"})', function(){it('read persons by simple query', function(done){
-	    var query = {name:'Nik Frank'}; var ops = {}; var ss = 'person';
+	    var query = {fullname:'Nik Frank'}; var ops = {}; var ss = 'person';
 	    pgx.read(ss, query, ops, checkObj([tdata.person[1]], done));
 	});});
 	describe('({f1:"v1", f2:"v2"}, stringOnly:true)', function(){it('read two fields string', function(done){
@@ -178,14 +187,14 @@ var hashSort = function(ss){
 	    pgx.read(ss, query, ops, checkObj([tdata.person[3]], done));
 	});});
 	describe('({returning:["c1","c2"]}, stringOnly:true)', function(){it('read ret cols', function(done){
-	    var query = {gender:'m'}; var ops = {returning:['name','gender'], stringOnly:true}; var ss = 'person';
+	    var query ={gender:'m'};var ops={returning:['fullname','gender'], stringOnly:true}; var ss = 'person';
 	    pgx.read(ss, query, ops, checkStr('readRetCols', done));
 	});});
 	describe('({returning:["col1","col2"]})', function(){it('read ret cols', function(done){
-	    var query = {gender:'m'}; var ops = {returning:['name','gender']}; var ss = 'person';
+	    var query = {gender:'m'}; var ops = {returning:['fullname','gender']}; var ss = 'person';
 	    pgx.read(ss, query, ops, checkObj(tdata.person.filter(function(p){return p.gender === 'm';})
 					      .sort(hashSort(ss))
-					      .map(function(p){ return {name:p.name, gender:p.gender}}),
+					      .map(function(p){ return {fullname:p.fullname, gender:p.gender}}),
 					      done, function(res){return res.sort(hashSort(ss));}));
 	});});
 

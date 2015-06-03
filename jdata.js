@@ -2,7 +2,7 @@ module.exports = {
 
     person:[{
 	person_hash:'person0',
-	name:'Nox Freebird',
+	fullname:'Nox Freebird',
 	fbid:'3',
 	country:'il',
 	gender:'m',
@@ -10,7 +10,7 @@ module.exports = {
 	schools:['school0']
     },{
 	person_hash:'person1',
-	name:'Nik Frank',
+	fullname:'Nik Frank',
 	mainlang:'js',
 	fbid:'4',
 	country:'il',
@@ -19,7 +19,7 @@ module.exports = {
 	schools:['school0', 'school1']
     },{
 	person_hash:'person2',
-	name:'Yaakov Moishe',
+	fullname:'Yaakov Moishe',
 	mainlang:'c#',
 	fbid:'5',
 	country:'us',
@@ -28,7 +28,7 @@ module.exports = {
 	schools:['school0', 'school1']
     },{
 	person_hash:'person3',
-	name:'Nir Kaufman',
+	fullname:'Nir Kaufman',
 	mainlang:'ES6',
 	fbid:'6',
 	country:'il',
@@ -39,13 +39,13 @@ module.exports = {
 
     school:[{
 	school_hash:'school0',
-	name:'javascript school',
+	fullname:'javascript school',
 	country:'il',
 	teachers:['person1','person2'],
 	students:['person0']
     },{
 	school_hash:'school1',
-	name:'web arch school',
+	fullname:'web arch school',
 	country:'us',
 	teachers:['person2'],
 	students:['person1']

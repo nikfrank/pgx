@@ -24,7 +24,7 @@ module.exports = function(pg, conop, schemas){
 	var qreq = 'insert into '+schema.tableName+' (';
 	var valreq = ') values (';
 
-	if(typeof callback === 'function'){
+	if((typeof callback === 'undefined')&&(typeof options === 'function')){
 	    callback = options;
 	    options = {};
 	}
@@ -122,7 +122,7 @@ module.exports = function(pg, conop, schemas){
 	var qreq = 'insert into '+schema.tableName+' (';
 	var valreq = ') values ';
 
-	if(typeof callback === 'function'){
+	if((typeof callback === 'undefined')&&(typeof options === 'function')){
 	    callback = options;
 	    options = {};
 	}	
@@ -196,7 +196,7 @@ module.exports = function(pg, conop, schemas){
 
 	var sreq = 'select '+urreq+' from '+schema.tableName+wreq+';';
 
-	if(typeof callback === 'function'){
+	if((typeof callback === 'undefined')&&(typeof options === 'function')){
 	    callback = options;
 	    options = {};
 	}
@@ -518,7 +518,7 @@ module.exports = function(pg, conop, schemas){
 	if(typeof schemaNameOrNames === 'string') schemaName = schemaNameOrNames;
 	var schema = schemas[schemaName];
 
-	if(typeof callback === 'function'){
+	if((typeof callback === 'undefined')&&(typeof options === 'function')){
 	    callback = options;
 	    options = {};
 	}
@@ -602,7 +602,7 @@ module.exports = function(pg, conop, schemas){
     pg.erase = function(schemaName, query, options, callback){
 	var schema = schemas[schemaName];
 
-	if(typeof callback === 'function'){
+	if((typeof callback === 'undefined')&&(typeof options === 'function')){
 	    callback = options;
 	    options = {};
 	}
@@ -657,10 +657,10 @@ module.exports = function(pg, conop, schemas){
 		var ftypes = [];
 
 		for(ss in schemas){
-		    tnames.push(ss.tableName);
-		    for(k in ss.fields){
+		    tnames.push(schemas[ss].tableName);
+		    for(k in schemas[ss].fields){
 			skeys.push(k);
-			ftypes.push(ss.fields[k].split('[')[0]);
+			ftypes.push(schemas[ss].fields[k].type.split('[')[0].split('(')[0]);
 		    }
 		}
 
@@ -668,27 +668,30 @@ module.exports = function(pg, conop, schemas){
 
 		// check that all types fit into this list .split('[')[0]
 
-		var valid = true;
-
-		skeys.forEach(function(sk){
+		var failKeys = skeys.filter(function(sk){
 		    // check that none of the sk are in keys
+		    return (keys.indexOf(sk)!==-1);
 		});
 
-		tnames.forEach(function(tn){
+		var failNames = tnames.filter(function(tn){
 		    // check that none of the tn are in keys
+		    return (keys.indexOf(tn)!==-1);
 		});
 
-		ftypes.forEach(function(ft){
+		var failTypes = ftypes.filter(function(ft){
 		    // check that all of the ft are in types
+		    return (types.indexOf(ft)===-1);
 		});
-		
+
+		var errs = '';
+		if(failKeys.length) errs += failKeys.join()+' are reserved words\n';
+		if(failNames.length) errs += failNames.join()+' are reserved words\n';
+		if(failTypes.length) errs += failTypes.join()+' are not real types';
+
+		return callback(errs?errs:undefined)
 	    });
 	});
     };
-
-    pg.schemaVerify(function(err){
-	console.log(err);
-    });
 
 
     pg.dbstats = function(callback){
@@ -707,15 +710,12 @@ module.exports = function(pg, conop, schemas){
     };
 
 
-// DOCUMENT THIS
     pg.empty = function(callback, errcallback){
 	pg.connect(conop, function(err, client, done) {
 	    if(err) return errcallback({err:err});
 
 	    var emp = 'begin;';
-
 	    for(var sn in schemas) emp += 'delete from '+schemas[sn].tableName+';';
-
 	    emp += 'commit;';
 
 	    client.query(emp, function(err, pon){
@@ -785,7 +785,7 @@ console.log(scerr);//how?
 			    boot += 'delete from '+oldSchemaName+'; ';
 
 		    for(var oldSchemaName in oldschemas){
-			if(!(oldSchemaName in schemas) && !options.nuboot){
+			if(!(oldSchemaName in schemas) ){ //&& !options.nuboot
 			    boot += 'begin; insert into '+oldschemas[oldSchemaName].tableName+' ('+oldSchemaName+'_hash) values ($$whatever$$); commit;'; // ghost rec for drop
 			    boot += 'begin; drop table '+oldschemas[oldSchemaName].tableName+'; commit;';
 			}else{

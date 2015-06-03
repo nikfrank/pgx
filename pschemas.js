@@ -2,7 +2,7 @@ module.exports = {
     person:{
 	tableName:'person',
 	fields:{
-	    name:{type:'text'},
+	    fullname:{type:'text'},
 	    fbid:{type:'text'}, // unique
 	    country:{type:'text'},
 	    gender:{type:'text'},
@@ -19,7 +19,7 @@ module.exports = {
     school:{
 	tableName:'school',
 	fields:{
-	    name:{type:'text'},
+	    fullname:{type:'text'},
 	    country:{type:'text'},
 	    teachers:{
 		type:'varchar(31)[]',
@@ -47,7 +47,7 @@ module.exports = {
 		jointype:'school'
 	    },
 	    date:{type:'timestamp'},
-	    grade:{type:'int'}
+	    grade:{type:'int2'}
 	}
     }
 };

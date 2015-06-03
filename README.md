@@ -83,6 +83,12 @@ API
 ===
 ------
 
+the following get grafted onto the original pg object. unconventional? probably.
+
+in addition to the original pg.connect -> client -> query -> ... routine
+
+
+
 boot
 ---
 
@@ -150,12 +156,7 @@ erase
 schemaVerify
 ---
 
-    (( pgx.schemaVerify() ))
-
-
-on the original pg object. unconventional? probably.
-
-in addition to the original pg.connect -> client -> query -> ... routine
+    pgx.schemaVerify()
 
 
 examples
