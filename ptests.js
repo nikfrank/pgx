@@ -18,6 +18,8 @@ var tdata = require('./jdata');
 var fs = require('fs');
 var stringRes = {};
 
+var jsonNice = require('json-nice');
+
 // refactor these for the jdata
 // try to keep the tests lined up with jtests
 
@@ -35,7 +37,7 @@ describe('pgx', function(){
 
 	// empty out the database
 
-	fs.writeFile("./pStringRes.json", JSON.stringify(stringRes), function(err){
+	fs.writeFile("./pStringRes.json", jsonNice(stringRes), function(err){
 	    if(err) return done(err);
 	    console.log("The file was saved!");
 	    done();
@@ -55,9 +57,15 @@ var checkObj = function(obj, done, appToRes){
     appToRes = appToRes||function(r){return r};
     return function(err, res){
 	if(err) return done(JSON.stringify(err));
-//console.log(JSON.stringify(obj));
-//console.log(JSON.stringify(res));
-//console.log(' ');
+if('write out all comparisons'&&false){
+    console.log(' ');
+    console.log(' ');
+    console.log(jsonNice(obj));
+    console.log(' ');
+    console.log(jsonNice(res));
+    console.log(' ');
+    console.log(' ');
+}
 	try{
 	    assert.deepEqual(appToRes(res), obj);
 	}catch(e){
@@ -115,6 +123,8 @@ var checkObj = function(obj, done, appToRes){
 	    }));
 	});});
 
+	// check that duplicate hash insert fails
+
 	after(function(){ teststatus = 'insert'; console.log('inserts done');});
     });
 //---------------------------------------------------------------------------
@@ -132,28 +142,26 @@ var checkObj = function(obj, done, appToRes){
 	    }, 90);
 	});
 
-	describe('(stringOnly:true)', function(){
-	    it.skip('should make a properly formatted read string', function(done){
-		
-		pgx.read('rule', {lang:'iw',type:'v'}, {stringOnly:true}, function(err, ruleS){
-		    //check the content of the string?
-		    done(err||((typeof ruleS !== 'string')?'not a string':undefined));
-		});
 
-	    });
-	});
+	describe('(stringOnly:true)', function(){it('read string', function(done){
+	    var query = {}; var ops = {stringOnly:true}; var ss = 'person';
+	    pgx.read(ss, query, ops, checkStr('read', done));
+	});});
+	describe('()', function(){it('read persons', function(done){
+	    var query = {}; var ops = {}; var ss = 'person';
+	    pgx.read(ss, query, ops, checkObj(tdata.person, done, function(res){
+		return res.sort(function(a,b){ return a[ss+'_hash'] > b[ss+'_hash'];});
+	    }));
+	});});
+	describe('({field:"val"}, stringOnly:true)', function(){it('read simple query string', function(done){
+	    var query = {name:'Nik Frank'}; var ops = {stringOnly:true}; var ss = 'person';
+	    pgx.read(ss, query, ops, checkStr('readSimpleQuery', done));
+	});});
+	describe('({field:"val"})', function(){it('read persons by simple query', function(done){
+	    var query = {name:'Nik Frank'}; var ops = {}; var ss = 'person';
+	    pgx.read(ss, query, ops, checkObj([tdata.person[1]], done));
+	});});
 
-	describe('()', function(){
-	    it.skip('should read the inserted doc from earlier from the db', function(done){
-		//
-	    });
-	});
-
-	describe('({field:"val"})', function(){
-	    it.skip('should find docs matching the field', function(done){
-		//
-	    });
-	});
 
 	describe('({jsonfield:{"key":"val"}})', function(){
 	    it.skip('should find docs matching the json->> subfield', function(done){

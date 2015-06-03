@@ -2,21 +2,17 @@
 todo (code)
 ----------------
 
-fix the schema table boot bug
+psql constraints (then upsert?)
+
+psql foreign key (integrity constraint)
 
 date comparisons
 
 array push if not contains
 
-returning clause from [within json, xattrs]
-
 where clause in xattrs/json (json depth reads)
 
-options on join reads
-
-backpointer arrays on join reads (grafting subdocs where subdoc points to root hash)
-
-depth joins
+with clause (join, depth join)
 
 schema verify schema cannot have anything called "group" or "user" "from" "to" or starting with a $
 (basically any postgres keyword is not allowed for schemaNames or tableNames
@@ -27,7 +23,7 @@ range queries
 
 - range or modulo for numbers
 
-diffs as a data type/schema option
+file types in octo-data (adapter director)
 
 array and json operators
 

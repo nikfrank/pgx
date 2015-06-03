@@ -6,7 +6,7 @@ module.exports = function(pg, conop, schemas){
 
     var defaultFields = {
 	hash:{
-	    type:'varchar(31)'
+	    type:'varchar(31) unique not null'
 	},
 	xattrs:{
 	    type:'json',
@@ -1028,13 +1028,13 @@ function formatas(data, type, dm, old){
 	//if empty string put null
 	if((typeof data === 'undefined')||((JSON.stringify(data) === 'null')&&(data !== 'null')))
 	    return 'null';
-	else if(!data.length) return 'null';
+	else if((!data.length)&&(data.constructor != Array)) return 'null';
 
 	if(type.indexOf('[')===-1) return (dm + data + dm);
 
 	//array
 	else{
-	    if(!data.length) return ('ARRAY[]::'+schema.fields[ff].type);
+	    if(!data.length) return ('ARRAY[]::'+type);
 	    else{
 		ret += 'ARRAY[';
 		for(var i=0; i<data.length; ++i) ret += dm + data[i] + dm + ',';

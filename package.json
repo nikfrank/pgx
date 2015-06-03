@@ -1,10 +1,10 @@
 {
   "name": "pgx",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "homepage": "http://nikfrank.com/#/works/pgx",
   "description": "Simple as pie ODM for pg postgres module",
   "dependencies": {
-      "pg":"latest",
+    "pg": "latest",
     "btoa": "1.1.1",
     "crypto": "0.0.3"
   },
@@ -18,6 +18,7 @@
     "odm"
   ],
   "devDependencies": {
+    "json-nice": "^1.0.1",
     "mocha": "1.18.2"
   },
   "main": "pgx",
