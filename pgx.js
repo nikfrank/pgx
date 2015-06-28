@@ -652,9 +652,7 @@ module.exports = function(pg, conop, schemas){
 		    if('typname' in r) types.push(r.typname);
 		});
 
-		var skeys = [];
-		var tnames = [];
-		var ftypes = [];
+		var skeys = []; var tnames = []; var ftypes = [];
 
 		for(ss in schemas){
 		    tnames.push(schemas[ss].tableName);
@@ -670,7 +668,11 @@ module.exports = function(pg, conop, schemas){
 
 		var failKeys = skeys.filter(function(sk){
 		    // check that none of the sk are in keys
-		    return (keys.indexOf(sk)!==-1)||(sk.indexOf('_hash')>-1)||(sk.indexOf('_xattrs')>-1);
+		    return (keys.indexOf(sk)!==-1)||
+			(sk.indexOf('_hash')>-1)||(sk.indexOf('_xattrs')>-1)||
+
+			// special keywords for minister
+			(['hit', 'miss'].indexOf(sk)!==-1);
 		});
 
 		var failNames = tnames.filter(function(tn){

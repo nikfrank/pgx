@@ -40,3 +40,11 @@ array and json operators
 'authors':{name:{$like:'%Frank'},location:'tel aviv'}
 
 'authors':{$elemMatch:{name:{$like:'%Frank'},location:'tel aviv'} }
+
+------------------
+
+pgj
+
+resolve schema based on _hash in object
+-> if null, it is filled in for you, but you still got to be lazy
+--> also this allows multischema batch inserts

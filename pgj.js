@@ -421,7 +421,6 @@ function TEST(){
 
     // insert data .........................
 
-
     var q1 = {
 	person:{
 	    name:'nik'
@@ -469,10 +468,10 @@ function TEST(){
     // then query for person(s) as student for whom
     // the teacher field includesAny of the result of the person query
     // returns data as {person:[...], student:[...]}
-    var nuq = {
+    var nuq = ['orderObject', {
 	person:{name:'nik', country:'IL'},
 	student:['person', {teachers:['includesAny', ['prevQuery','person']]}]
-    };
+    }];
 
 
 
